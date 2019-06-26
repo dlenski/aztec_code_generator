@@ -545,19 +545,26 @@ class AztecCode(object):
         :param filename: output image filename.
         :param module_size: barcode module size in pixels.
         """
+        self.image(module_size).save(filename)
+
+    def image(self, module_size=1):
+        """ Create PIL image
+
+        :param module_size: barcode module size in pixels.
+        """
         if ImageDraw is None:
             exc = missing_pil[0](missing_pil[1])
             exc.__traceback__ = missing_pil[2]
             raise exc
-        image = Image.new('RGB', (self.size * module_size, self.size * module_size), 'white')
+        image = Image.new('1', (self.size * module_size, self.size * module_size), 1)
         image_draw = ImageDraw.Draw(image)
         for y in range(self.size):
             for x in range(self.size):
                 image_draw.rectangle(
                     (x * module_size, y * module_size,
                      x * module_size + module_size, y * module_size + module_size),
-                    fill=(0, 0, 0) if self.matrix[y][x] == '#' else (255, 255, 255))
-        image.save(filename)
+                    fill=(self.matrix[y][x] != '#'))
+        return image
 
     def print_out(self):
         """ Print out Aztec code matrix """
