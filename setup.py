@@ -5,11 +5,11 @@ try:
 except ImportError:
   from distutils.core import setup
 
-if sys.version_info < (3,3):
-    sys.exit("Python 3.3+ is required; you are using %s" % sys.version)
+if sys.version_info < (3,4):
+    sys.exit("Python 3.4+ is required; you are using %s" % sys.version)
 
 setup(name="aztec_code_generator",
-      version="0.1",
+      version="0.2",
       description='Aztec Code generator in Python',
       long_description=open('description.rst').read(),
       author='Dmitry Alimov',
