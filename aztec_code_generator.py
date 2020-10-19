@@ -397,7 +397,7 @@ def find_optimal_sequence(data):
 
         if c == 'B/S':
             is_binary_length = True
-            
+
     return updated_result_seq
 
 
