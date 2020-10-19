@@ -15,6 +15,7 @@ import numbers
 import sys
 import array
 from collections import namedtuple
+from enum import Enum
 
 try:
     from PIL import Image, ImageDraw
@@ -76,89 +77,91 @@ polynomials = {
     12: 4201,
 }
 
+Mode = Enum('Mode', ('UPPER', 'LOWER', 'MIXED', 'PUNCT', 'DIGIT', 'BINARY'))
+
 code_chars = {
-    'upper': [
+    Mode.UPPER: [
         'P/S', ' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
         'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'L/L', 'M/L', 'D/L', 'B/S'
     ],
-    'lower': [
+    Mode.LOWER: [
         'P/S', ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
         't', 'u', 'v', 'w', 'x', 'y', 'z', 'U/S', 'M/L', 'D/L', 'B/S'
     ],
-    'mixed': [
+    Mode.MIXED: [
         'P/S', ' ', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07', '\x08', '\t', '\n', '\x0b', '\x0c', '\r',
         '\x1b', '\x1c', '\x1d', '\x1e', '\x1f', '@', '\\', '^', '_', '`', '|', '~', '\x7f', 'L/L', 'U/L', 'P/L', 'B/S'
     ],
-    'punct': [
+    Mode.PUNCT: [
         'FLG(n)', '\r', '\r\n', '. ', ', ', ': ', '!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.',
         '/', ':', ';', '<', '=', '>', '?', '[', ']', '{', '}', 'U/L'
     ],
-    'digit': [
+    Mode.DIGIT: [
         'P/S', ' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '.', 'U/L', 'U/S'
     ],
 }
 
-upper_chars = code_chars['upper'][1:-4]
-lower_chars = code_chars['lower'][1:-4]
-mixed_chars = code_chars['mixed'][1:-4]
-punct_chars = code_chars['punct'][1:-1]
-digit_chars = code_chars['digit'][1:-2]
+upper_chars = code_chars[Mode.UPPER][1:-4]
+lower_chars = code_chars[Mode.LOWER][1:-4]
+mixed_chars = code_chars[Mode.MIXED][1:-4]
+punct_chars = code_chars[Mode.PUNCT][1:-1]
+digit_chars = code_chars[Mode.DIGIT][1:-2]
 punct_2_chars = [pc for pc in punct_chars if len(pc) == 2]
 
 E = 99999  # some big number
 
 latch_len = {
-    'upper': {
-        'upper': 0, 'lower': 5, 'mixed': 5, 'punct': 10, 'digit': 5, 'binary': 10
+    Mode.UPPER: {
+        Mode.UPPER: 0, Mode.LOWER: 5, Mode.MIXED: 5, Mode.PUNCT: 10, Mode.DIGIT: 5, Mode.BINARY: 10
     },
-    'lower': {
-        'upper': 10, 'lower': 0, 'mixed': 5, 'punct': 10, 'digit': 5, 'binary': 10
+    Mode.LOWER: {
+        Mode.UPPER: 10, Mode.LOWER: 0, Mode.MIXED: 5, Mode.PUNCT: 10, Mode.DIGIT: 5, Mode.BINARY: 10
     },
-    'mixed': {
-        'upper': 5, 'lower': 5, 'mixed': 0, 'punct': 5, 'digit': 10, 'binary': 10
+    Mode.MIXED: {
+        Mode.UPPER: 5, Mode.LOWER: 5, Mode.MIXED: 0, Mode.PUNCT: 5, Mode.DIGIT: 10, Mode.BINARY: 10
     },
-    'punct': {
-        'upper': 5, 'lower': 10, 'mixed': 10, 'punct': 0, 'digit': 10, 'binary': 15
+    Mode.PUNCT: {
+        Mode.UPPER: 5, Mode.LOWER: 10, Mode.MIXED: 10, Mode.PUNCT: 0, Mode.DIGIT: 10, Mode.BINARY: 15
     },
-    'digit': {
-        'upper': 4, 'lower': 9, 'mixed': 9, 'punct': 14, 'digit': 0, 'binary': 14
+    Mode.DIGIT: {
+        Mode.UPPER: 4, Mode.LOWER: 9, Mode.MIXED: 9, Mode.PUNCT: 14, Mode.DIGIT: 0, Mode.BINARY: 14
     },
-    'binary': {
-        'upper': 0, 'lower': 0, 'mixed': 0, 'punct': 0, 'digit': 0, 'binary': 0
+    Mode.BINARY: {
+        Mode.UPPER: 0, Mode.LOWER: 0, Mode.MIXED: 0, Mode.PUNCT: 0, Mode.DIGIT: 0, Mode.BINARY: 0
     },
 }
 
 shift_len = {
-    'upper': {
-        'upper': E, 'lower': E, 'mixed': E, 'punct': 5, 'digit': E, 'binary': E
+    Mode.UPPER: {
+        Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: 5, Mode.DIGIT: E, Mode.BINARY: E
     },
-    'lower': {
-        'upper': 5, 'lower': E, 'mixed': E, 'punct': 5, 'digit': E, 'binary': E
+    Mode.LOWER: {
+        Mode.UPPER: 5, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: 5, Mode.DIGIT: E, Mode.BINARY: E
     },
-    'mixed': {
-        'upper': E, 'lower': E, 'mixed': E, 'punct': 5, 'digit': E, 'binary': E
+    Mode.MIXED: {
+        Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: 5, Mode.DIGIT: E, Mode.BINARY: E
     },
-    'punct': {
-        'upper': E, 'lower': E, 'mixed': E, 'punct': E, 'digit': E, 'binary': E
+    Mode.PUNCT: {
+        Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: E, Mode.DIGIT: E, Mode.BINARY: E
     },
-    'digit': {
-        'upper': 4, 'lower': E, 'mixed': E, 'punct': 4, 'digit': E, 'binary': E
+    Mode.DIGIT: {
+        Mode.UPPER: 4, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: 4, Mode.DIGIT: E, Mode.BINARY: E
     },
-    'binary': {
-        'upper': E, 'lower': E, 'mixed': E, 'punct': E, 'digit': E, 'binary': E
+    Mode.BINARY: {
+        Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: E, Mode.DIGIT: E, Mode.BINARY: E
     },
 }
 
 char_size = {
-    'upper': 5, 'lower': 5, 'mixed': 5, 'punct': 5, 'digit': 4, 'binary': 8,
+    Mode.UPPER: 5, Mode.LOWER: 5, Mode.MIXED: 5, Mode.PUNCT: 5, Mode.DIGIT: 4, Mode.BINARY: 8,
 }
 
 modes = [
-    'upper', 'lower', 'mixed', 'punct', 'digit', 'binary',
+    Mode.UPPER, Mode.LOWER, Mode.MIXED, Mode.PUNCT, Mode.DIGIT, Mode.BINARY,
 ]
 
 abbr_modes = {
-    'U': 'upper', 'L': 'lower', 'M': 'mixed', 'P': 'punct', 'D': 'digit', 'B': 'binary',
+    'U': Mode.UPPER, 'L': Mode.LOWER, 'M': Mode.MIXED, 'P': Mode.PUNCT, 'D': Mode.DIGIT, 'B': Mode.BINARY,
 }
 
 
@@ -222,14 +225,14 @@ def find_optimal_sequence(data):
     :return: optimal sequence
     """
     back_to = {
-        'upper': 'upper', 'lower': 'upper', 'mixed': 'upper',
-        'punct': 'upper', 'digit': 'upper', 'binary': 'upper'
+        Mode.UPPER: Mode.UPPER, Mode.LOWER: Mode.UPPER, Mode.MIXED: Mode.UPPER,
+        Mode.PUNCT: Mode.UPPER, Mode.DIGIT: Mode.UPPER, Mode.BINARY: Mode.UPPER
     }
     cur_len = {
-        'upper': 0, 'lower': E, 'mixed': E, 'punct': E, 'digit': E, 'binary': E
+        Mode.UPPER: 0, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: E, Mode.DIGIT: E, Mode.BINARY: E
     }
     cur_seq = {
-        'upper': [], 'lower': [], 'mixed': [], 'punct': [], 'digit': [], 'binary': []
+        Mode.UPPER: [], Mode.LOWER: [], Mode.MIXED: [], Mode.PUNCT: [], Mode.DIGIT: [], Mode.BINARY: []
     }
     prev_c = ''
     for c in data:
@@ -237,104 +240,104 @@ def find_optimal_sequence(data):
             for y in modes:
                 if cur_len[x] + latch_len[x][y] < cur_len[y]:
                     cur_len[y] = cur_len[x] + latch_len[x][y]
-                    if y == 'binary':
+                    if y == Mode.BINARY:
                         # for binary mode use B/S instead of B/L
-                        if x in ['punct', 'digit']:
+                        if x in (Mode.PUNCT, Mode.DIGIT):
                             # if changing from punct or digit to binary mode use U/L as intermediate mode
                             # TODO: update for digit
-                            back_to[y] = 'upper'
-                            cur_seq[y] = cur_seq[x] + ['U/L', '%s/S' % y.upper()[0], 'size']
+                            back_to[y] = Mode.UPPER
+                            cur_seq[y] = cur_seq[x] + ['U/L', '%s/S' % y.name[0], 'size']
                         else:
                             back_to[y] = x
-                            cur_seq[y] = cur_seq[x] + ['%s/S' % y.upper()[0], 'size']
+                            cur_seq[y] = cur_seq[x] + ['%s/S' % y.name[0], 'size']
                     else:
                         if cur_seq[x]:
                             # if changing from punct or digit mode - use U/L as intermediate mode
                             # TODO: update for digit
-                            if x in ['punct', 'digit'] and y != 'upper':
-                                cur_seq[y] = cur_seq[x] + ['resume', 'U/L', '%s/L' % y.upper()[0]]
+                            if x in (Mode.PUNCT, Mode.DIGIT) and y != Mode.UPPER:
+                                cur_seq[y] = cur_seq[x] + ['resume', 'U/L', '%s/L' % y.name[0]]
                                 back_to[y] = y
-                            elif x in ['upper', 'lower'] and y == 'punct':
-                                cur_seq[y] = cur_seq[x] + ['M/L', '%s/L' % y.upper()[0]]
+                            elif x in (Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
+                                cur_seq[y] = cur_seq[x] + ['M/L', '%s/L' % y.name[0]]
                                 back_to[y] = y
-                            elif x == 'mixed' and y != 'upper':
-                                if y == 'punct':
+                            elif x == Mode.MIXED and y != Mode.UPPER:
+                                if y == Mode.PUNCT:
                                     cur_seq[y] = cur_seq[x] + ['P/L']
-                                    back_to[y] = 'punct'
+                                    back_to[y] = Mode.PUNCT
                                 else:
                                     cur_seq[y] = cur_seq[x] + ['U/L', 'D/L']
-                                    back_to[y] = 'digit'
+                                    back_to[y] = Mode.DIGIT
                                 continue
                             else:
-                                if x == 'binary':
+                                if x == Mode.BINARY:
                                     # TODO: review this
                                     # Reviewed by jravallec
                                     if y == back_to[x]:
                                         # when return from binary to previous mode, skip mode change
                                         cur_seq[y] = cur_seq[x] + ['resume']
-                                    elif y == 'upper':
-                                        if back_to[x] == 'lower':
+                                    elif y == Mode.UPPER:
+                                        if back_to[x] == Mode.LOWER:
                                             cur_seq[y] = cur_seq[x] + ['resume', 'M/L', 'U/L']
-                                        if back_to[x] == 'mixed':
+                                        if back_to[x] == Mode.MIXED:
                                             cur_seq[y] = cur_seq[x] + ['resume', 'U/L']
-                                        back_to[y] = 'upper'
-                                    elif y == 'lower':
+                                        back_to[y] = Mode.UPPER
+                                    elif y == Mode.LOWER:
                                         cur_seq[y] = cur_seq[x] + ['resume', 'L/L']
-                                        back_to[y] = 'lower'
-                                    elif y == 'mixed':
+                                        back_to[y] = Mode.LOWER
+                                    elif y == Mode.MIXED:
                                         cur_seq[y] = cur_seq[x] + ['resume', 'M/L']
-                                        back_to[y] = 'mixed'
-                                    elif y == 'punct':
-                                        if back_to[x] == 'mixed':
+                                        back_to[y] = Mode.MIXED
+                                    elif y == Mode.PUNCT:
+                                        if back_to[x] == Mode.MIXED:
                                             cur_seq[y] = cur_seq[x] + ['resume', 'P/L']
                                         else:
                                             cur_seq[y] = cur_seq[x] + ['resume', 'M/L', 'P/L']
-                                        back_to[y] = 'punct'
-                                    elif y == 'digit':
-                                        if back_to[x] == 'mixed':
+                                        back_to[y] = Mode.PUNCT
+                                    elif y == Mode.DIGIT:
+                                        if back_to[x] == Mode.MIXED:
                                             cur_seq[y] = cur_seq[x] + ['resume', 'U/L', 'D/L']
                                         else:
                                             cur_seq[y] = cur_seq[x] + ['resume', 'D/L']
-                                        back_to[y] = 'digit'
+                                        back_to[y] = Mode.DIGIT
                                 else:
-                                    cur_seq[y] = cur_seq[x] + ['resume', '%s/L' % y.upper()[0]]
+                                    cur_seq[y] = cur_seq[x] + ['resume', '%s/L' % y.name[0]]
                                     back_to[y] = y
                         else:
                             # if changing from punct or digit mode - use U/L as intermediate mode
                             # TODO: update for digit
-                            if x in ['punct', 'digit']:
-                                cur_seq[y] = cur_seq[x] + ['U/L', '%s/L' % y.upper()[0]]
+                            if x in (Mode.PUNCT, Mode.DIGIT):
+                                cur_seq[y] = cur_seq[x] + ['U/L', '%s/L' % y.name[0]]
                                 back_to[y] = y
-                            elif x in ['binary', 'upper', 'lower'] and y == 'punct':
-                                cur_seq[y] = cur_seq[x] + ['M/L', '%s/L' % y.upper()[0]]
+                            elif x in (Mode.BINARY, Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
+                                cur_seq[y] = cur_seq[x] + ['M/L', '%s/L' % y.name[0]]
                                 back_to[y] = y
                             else:
-                                cur_seq[y] = cur_seq[x] + ['%s/L' % y.upper()[0]]
+                                cur_seq[y] = cur_seq[x] + ['%s/L' % y.name[0]]
                                 back_to[y] = y
         next_len = {
-            'upper': E, 'lower': E, 'mixed': E, 'punct': E, 'digit': E, 'binary': E
+            Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: E, Mode.DIGIT: E, Mode.BINARY: E
         }
         next_seq = {
-            'upper': [], 'lower': [], 'mixed': [], 'punct': [], 'digit': [], 'binary': []
+            Mode.UPPER: [], Mode.LOWER: [], Mode.MIXED: [], Mode.PUNCT: [], Mode.DIGIT: [], Mode.BINARY: []
         }
         possible_modes = []
         if c in upper_chars:
-            possible_modes.append('upper')
+            possible_modes.append(Mode.UPPER)
         if c in lower_chars:
-            possible_modes.append('lower')
+            possible_modes.append(Mode.LOWER)
         if c in mixed_chars:
-            possible_modes.append('mixed')
+            possible_modes.append(Mode.MIXED)
         if c in punct_chars:
-            possible_modes.append('punct')
+            possible_modes.append(Mode.PUNCT)
         if c in digit_chars:
-            possible_modes.append('digit')
-        possible_modes.append('binary')
+            possible_modes.append(Mode.DIGIT)
+        possible_modes.append(Mode.BINARY)
         for x in possible_modes:
             # TODO: review this!
-            if back_to[x] == 'digit' and x == 'lower':
+            if back_to[x] == Mode.DIGIT and x == Mode.LOWER:
                 cur_seq[x] = cur_seq[x] +  ['U/L', 'L/L']
                 cur_len[x] = cur_len[x] + latch_len[back_to[x]][x]
-                back_to[x] = 'lower'
+                back_to[x] = Mode.LOWER
             # add char to current sequence
             if cur_len[x] + char_size[x] < next_len[x]:
                 next_len[x] = cur_len[x] + char_size[x]
@@ -344,7 +347,7 @@ def find_optimal_sequence(data):
                     continue
                 if cur_len[y] + shift_len[y][x] + char_size[x] < next_len[y]:
                     next_len[y] = cur_len[y] + shift_len[y][x] + char_size[x]
-                    next_seq[y] = cur_seq[y] + ['%s/S' % x.upper()[0]] + [c]
+                    next_seq[y] = cur_seq[y] + ['%s/S' % x.name[0]] + [c]
         # TODO: review this!!!
         if prev_c and prev_c + c in punct_2_chars:
             for x in modes:
@@ -353,13 +356,13 @@ def find_optimal_sequence(data):
                     if char.replace('/S', '').replace('/L', '') in abbr_modes:
                         last_mode = abbr_modes.get(char.replace('/S', '').replace('/L', ''))
                         break
-                if last_mode == 'punct':
+                if last_mode == Mode.PUNCT:
                     if cur_seq[x][-1] + c in punct_2_chars:
                         if cur_len[x] < next_len[x]:
                             next_len[x] = cur_len[x]
                             next_seq[x] = cur_seq[x][:-1] + [cur_seq[x][-1] + c]
-        if len(next_seq['binary']) - 2 == 32:
-            next_len['binary'] += 11
+        if len(next_seq[Mode.BINARY]) - 2 == 32:
+            next_len[Mode.BINARY] += 11
         for i in modes:
             cur_len[i] = next_len[i]
             cur_seq[i] = next_seq[i]
@@ -411,8 +414,8 @@ def optimal_sequence_to_bits(optimal_sequence):
     :return: string with bits
     """
     out_bits = ''
-    mode = 'upper'
-    prev_mode = 'upper'
+    mode = Mode.UPPER
+    prev_mode = Mode.UPPER
     shift = False
     binary = False
     binary_seq_len = 0
@@ -444,7 +447,7 @@ def optimal_sequence_to_bits(optimal_sequence):
             mode = abbr_modes.get(ch.replace('/S', ''))
             shift = True
         # handle binary mode
-        if mode == 'binary':
+        if mode == Mode.BINARY:
             if not sequence:
                 raise Exception('Expected binary sequence length')
             # followed by a 5 bit length
