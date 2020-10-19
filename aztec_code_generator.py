@@ -14,6 +14,7 @@ import math
 import numbers
 import sys
 import array
+from collections import namedtuple
 
 try:
     from PIL import Image, ImageDraw
@@ -26,44 +27,45 @@ try:
 except ImportError:
     from io import StringIO
 
+Config = namedtuple('Config', ('layers', 'codewords', 'cw_bits', 'bits', 'digits', 'text', 'bytes'))
 
 table = {
-    (15, True): {'layers': 1, 'codewords': 17, 'cw_bits': 6, 'bits': 102, 'digits': 13, 'text': 12, 'bytes': 6},
-    (19, False): {'layers': 1, 'codewords': 21, 'cw_bits': 6, 'bits': 126, 'digits': 18, 'text': 15, 'bytes': 8},
-    (19, True): {'layers': 2, 'codewords': 40, 'cw_bits': 6, 'bits': 240, 'digits': 40, 'text': 33, 'bytes': 19},
-    (23, False): {'layers': 2, 'codewords': 48, 'cw_bits': 6, 'bits': 288, 'digits': 49, 'text': 40, 'bytes': 24},
-    (23, True): {'layers': 3, 'codewords': 51, 'cw_bits': 8, 'bits': 408, 'digits': 70, 'text': 57, 'bytes': 33},
-    (27, False): {'layers': 3, 'codewords': 60, 'cw_bits': 8, 'bits': 480, 'digits': 84, 'text': 68, 'bytes': 40},
-    (27, True): {'layers': 4, 'codewords': 76, 'cw_bits': 8, 'bits': 608, 'digits': 110, 'text': 89, 'bytes': 53},
-    (31, False): {'layers': 4, 'codewords': 88, 'cw_bits': 8, 'bits': 704, 'digits': 128, 'text': 104, 'bytes': 62},
-    (37, False): {'layers': 5, 'codewords': 120, 'cw_bits': 8, 'bits': 960, 'digits': 178, 'text': 144, 'bytes': 87},
-    (41, False): {'layers': 6, 'codewords': 156, 'cw_bits': 8, 'bits': 1248, 'digits': 232, 'text': 187, 'bytes': 114},
-    (45, False): {'layers': 7, 'codewords': 196, 'cw_bits': 8, 'bits': 1568, 'digits': 294, 'text': 236, 'bytes': 145},
-    (49, False): {'layers': 8, 'codewords': 240, 'cw_bits': 8, 'bits': 1920, 'digits': 362, 'text': 291, 'bytes': 179},
-    (53, False): {'layers': 9, 'codewords': 230, 'cw_bits': 10, 'bits': 2300, 'digits': 433, 'text': 348, 'bytes': 214},
-    (57, False): {'layers': 10, 'codewords': 272, 'cw_bits': 10, 'bits': 2720, 'digits': 516, 'text': 414, 'bytes': 256},
-    (61, False): {'layers': 11, 'codewords': 316, 'cw_bits': 10, 'bits': 3160, 'digits': 601, 'text': 482, 'bytes': 298},
-    (67, False): {'layers': 12, 'codewords': 364, 'cw_bits': 10, 'bits': 3640, 'digits': 691, 'text': 554, 'bytes': 343},
-    (71, False): {'layers': 13, 'codewords': 416, 'cw_bits': 10, 'bits': 4160, 'digits': 793, 'text': 636, 'bytes': 394},
-    (75, False): {'layers': 14, 'codewords': 470, 'cw_bits': 10, 'bits': 4700, 'digits': 896, 'text': 718, 'bytes': 446},
-    (79, False): {'layers': 15, 'codewords': 528, 'cw_bits': 10, 'bits': 5280, 'digits': 1008, 'text': 808, 'bytes': 502},
-    (83, False): {'layers': 16, 'codewords': 588, 'cw_bits': 10, 'bits': 5880, 'digits': 1123, 'text': 900, 'bytes': 559},
-    (87, False): {'layers': 17, 'codewords': 652, 'cw_bits': 10, 'bits': 6520, 'digits': 1246, 'text': 998, 'bytes': 621},
-    (91, False): {'layers': 18, 'codewords': 720, 'cw_bits': 10, 'bits': 7200, 'digits': 1378, 'text': 1104, 'bytes': 687},
-    (95, False): {'layers': 19, 'codewords': 790, 'cw_bits': 10, 'bits': 7900, 'digits': 1511, 'text': 1210, 'bytes': 753},
-    (101, False): {'layers': 20, 'codewords': 864, 'cw_bits': 10, 'bits': 8640, 'digits': 1653, 'text': 1324, 'bytes': 824},
-    (105, False): {'layers': 21, 'codewords': 940, 'cw_bits': 10, 'bits': 9400, 'digits': 1801, 'text': 1442, 'bytes': 898},
-    (109, False): {'layers': 22, 'codewords': 1020, 'cw_bits': 10, 'bits': 10200, 'digits': 1956, 'text': 1566, 'bytes': 976},
-    (113, False): {'layers': 23, 'codewords': 920, 'cw_bits': 12, 'bits': 11040, 'digits': 2116, 'text': 1694, 'bytes': 1056},
-    (117, False): {'layers': 24, 'codewords': 992, 'cw_bits': 12, 'bits': 11904, 'digits': 2281, 'text': 1826, 'bytes': 1138},
-    (121, False): {'layers': 25, 'codewords': 1066, 'cw_bits': 12, 'bits': 12792, 'digits': 2452, 'text': 1963, 'bytes': 1224},
-    (125, False): {'layers': 26, 'codewords': 1144, 'cw_bits': 12, 'bits': 13728, 'digits': 2632, 'text': 2107, 'bytes': 1314},
-    (131, False): {'layers': 27, 'codewords': 1224, 'cw_bits': 12, 'bits': 14688, 'digits': 2818, 'text': 2256, 'bytes': 1407},
-    (135, False): {'layers': 28, 'codewords': 1306, 'cw_bits': 12, 'bits': 15672, 'digits': 3007, 'text': 2407, 'bytes': 1501},
-    (139, False): {'layers': 29, 'codewords': 1392, 'cw_bits': 12, 'bits': 16704, 'digits': 3205, 'text': 2565, 'bytes': 1600},
-    (143, False): {'layers': 30, 'codewords': 1480, 'cw_bits': 12, 'bits': 17760, 'digits': 3409, 'text': 2728, 'bytes': 1702},
-    (147, False): {'layers': 31, 'codewords': 1570, 'cw_bits': 12, 'bits': 18840, 'digits': 3616, 'text': 2894, 'bytes': 1806},
-    (151, False): {'layers': 32, 'codewords': 1664, 'cw_bits': 12, 'bits': 19968, 'digits': 3832, 'text': 3067, 'bytes': 1914},
+    (15, True): Config(layers=1, codewords=17, cw_bits=6, bits=102, digits=13, text=12, bytes=6),
+    (19, False): Config(layers=1, codewords=21, cw_bits=6, bits=126, digits=18, text=15, bytes=8),
+    (19, True): Config(layers=2, codewords=40, cw_bits=6, bits=240, digits=40, text=33, bytes=19),
+    (23, False): Config(layers=2, codewords=48, cw_bits=6, bits=288, digits=49, text=40, bytes=24),
+    (23, True): Config(layers=3, codewords=51, cw_bits=8, bits=408, digits=70, text=57, bytes=33),
+    (27, False): Config(layers=3, codewords=60, cw_bits=8, bits=480, digits=84, text=68, bytes=40),
+    (27, True): Config(layers=4, codewords=76, cw_bits=8, bits=608, digits=110, text=89, bytes=53),
+    (31, False): Config(layers=4, codewords=88, cw_bits=8, bits=704, digits=128, text=104, bytes=62),
+    (37, False): Config(layers=5, codewords=120, cw_bits=8, bits=960, digits=178, text=144, bytes=87),
+    (41, False): Config(layers=6, codewords=156, cw_bits=8, bits=1248, digits=232, text=187, bytes=114),
+    (45, False): Config(layers=7, codewords=196, cw_bits=8, bits=1568, digits=294, text=236, bytes=145),
+    (49, False): Config(layers=8, codewords=240, cw_bits=8, bits=1920, digits=362, text=291, bytes=179),
+    (53, False): Config(layers=9, codewords=230, cw_bits=10, bits=2300, digits=433, text=348, bytes=214),
+    (57, False): Config(layers=10, codewords=272, cw_bits=10, bits=2720, digits=516, text=414, bytes=256),
+    (61, False): Config(layers=11, codewords=316, cw_bits=10, bits=3160, digits=601, text=482, bytes=298),
+    (67, False): Config(layers=12, codewords=364, cw_bits=10, bits=3640, digits=691, text=554, bytes=343),
+    (71, False): Config(layers=13, codewords=416, cw_bits=10, bits=4160, digits=793, text=636, bytes=394),
+    (75, False): Config(layers=14, codewords=470, cw_bits=10, bits=4700, digits=896, text=718, bytes=446),
+    (79, False): Config(layers=15, codewords=528, cw_bits=10, bits=5280, digits=1008, text=808, bytes=502),
+    (83, False): Config(layers=16, codewords=588, cw_bits=10, bits=5880, digits=1123, text=900, bytes=559),
+    (87, False): Config(layers=17, codewords=652, cw_bits=10, bits=6520, digits=1246, text=998, bytes=621),
+    (91, False): Config(layers=18, codewords=720, cw_bits=10, bits=7200, digits=1378, text=1104, bytes=687),
+    (95, False): Config(layers=19, codewords=790, cw_bits=10, bits=7900, digits=1511, text=1210, bytes=753),
+    (101, False): Config(layers=20, codewords=864, cw_bits=10, bits=8640, digits=1653, text=1324, bytes=824),
+    (105, False): Config(layers=21, codewords=940, cw_bits=10, bits=9400, digits=1801, text=1442, bytes=898),
+    (109, False): Config(layers=22, codewords=1020, cw_bits=10, bits=10200, digits=1956, text=1566, bytes=976),
+    (113, False): Config(layers=23, codewords=920, cw_bits=12, bits=11040, digits=2116, text=1694, bytes=1056),
+    (117, False): Config(layers=24, codewords=992, cw_bits=12, bits=11904, digits=2281, text=1826, bytes=1138),
+    (121, False): Config(layers=25, codewords=1066, cw_bits=12, bits=12792, digits=2452, text=1963, bytes=1224),
+    (125, False): Config(layers=26, codewords=1144, cw_bits=12, bits=13728, digits=2632, text=2107, bytes=1314),
+    (131, False): Config(layers=27, codewords=1224, cw_bits=12, bits=14688, digits=2818, text=2256, bytes=1407),
+    (135, False): Config(layers=28, codewords=1306, cw_bits=12, bits=15672, digits=3007, text=2407, bytes=1501),
+    (139, False): Config(layers=29, codewords=1392, cw_bits=12, bits=16704, digits=3205, text=2565, bytes=1600),
+    (143, False): Config(layers=30, codewords=1480, cw_bits=12, bits=17760, digits=3409, text=2728, bytes=1702),
+    (147, False): Config(layers=31, codewords=1570, cw_bits=12, bits=18840, digits=3616, text=2894, bytes=1806),
+    (151, False): Config(layers=32, codewords=1664, cw_bits=12, bits=19968, digits=3832, text=3067, bytes=1914),
 }
 
 polynomials = {
@@ -521,7 +523,7 @@ def find_suitable_matrix_size(data):
     out_bits = optimal_sequence_to_bits(optimal_sequence)
     for (size, compact) in sorted(table.keys()):
         config = get_config_from_table(size, compact)
-        bits = config.get('bits')
+        bits = config.bits
         # error correction percent
         ec_percent = 23  # recommended: 23% of symbol capacity plus 3 codewords
         # calculate minimum required number of bits
@@ -664,7 +666,7 @@ class AztecCode(object):
         :param data_cw_count: number of data codewords.
         """
         config = get_config_from_table(self.size, self.compact)
-        layers_count = config.get('layers')
+        layers_count = config.layers
         mode_data_values = self.__get_mode_message(layers_count, data_cw_count)
         mode_data_bits = ''.join('{0:04b}'.format(v) for v in mode_data_values)
 
@@ -714,10 +716,10 @@ class AztecCode(object):
         optimal_sequence = find_optimal_sequence(data)
         out_bits = optimal_sequence_to_bits(optimal_sequence)
         config = get_config_from_table(self.size, self.compact)
-        layers_count = config.get('layers')
-        cw_count = config.get('codewords')
-        cw_bits = config.get('cw_bits')
-        bits = config.get('bits')
+        layers_count = config.layers
+        cw_count = config.codewords
+        cw_bits = config.cw_bits
+        bits = config.bits
 
         # error correction percent
         ec_percent = 23  # recommended
