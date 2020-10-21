@@ -427,7 +427,7 @@ def optimal_sequence_to_bits(optimal_sequence):
         # read one item from sequence
         ch = sequence.pop(0)
         if binary:
-            out_bits += bin(ord(ch))[2:].zfill(char_size.get(mode))
+            out_bits += bin(ch)[2:].zfill(char_size.get(mode))
             binary_index += 1
             # resume previous mode at the end of the binary sequence
             if binary_index >= binary_seq_len:
