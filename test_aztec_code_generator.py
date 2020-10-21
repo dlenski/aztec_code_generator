@@ -4,6 +4,7 @@
 import unittest
 from aztec_code_generator import (
     reed_solomon, find_optimal_sequence, optimal_sequence_to_bits, get_data_codewords,
+    Mode, Latch, Shift,
 )
 
 
@@ -31,51 +32,51 @@ class Test(unittest.TestCase):
         """ Test find_optimal_sequence function """
         self.assertEqual(find_optimal_sequence(''), [])
         self.assertEqual(find_optimal_sequence('ABC'), ['A', 'B', 'C'])
-        self.assertEqual(find_optimal_sequence('abc'), ['L/L', 'a', 'b', 'c'])
+        self.assertEqual(find_optimal_sequence('abc'), [Latch.LOWER, 'a', 'b', 'c'])
         self.assertEqual(find_optimal_sequence('Wikipedia, the free encyclopedia'), [
-            'W', 'L/L', 'i', 'k', 'i', 'p', 'e', 'd', 'i', 'a', 'P/S', ', ', 't', 'h', 'e',
+            'W', Latch.LOWER, 'i', 'k', 'i', 'p', 'e', 'd', 'i', 'a', Shift.PUNCT, ', ', 't', 'h', 'e',
             ' ', 'f', 'r', 'e', 'e', ' ', 'e', 'n', 'c', 'y', 'c', 'l', 'o', 'p', 'e', 'd', 'i', 'a'])
         self.assertEqual(find_optimal_sequence('Code 2D!'), [
-            'C', 'L/L', 'o', 'd', 'e', 'D/L', ' ', '2', 'U/S', 'D', 'P/S', '!'])
-        self.assertEqual(find_optimal_sequence('a\xff'), ['B/S', 2, 'a', '\xff'])
-        self.assertEqual(find_optimal_sequence('a' + '\xff' * 30), ['B/S', 31, 'a'] + ['\xff'] * 30)
-        self.assertEqual(find_optimal_sequence('a' + '\xff' * 31), ['B/S', 0, 1, 'a'] + ['\xff'] * 31)
-        self.assertEqual(find_optimal_sequence('!#$%&?'), ['M/L', 'P/L', '!', '#', '$', '%', '&', '?'])
+            'C', Latch.LOWER, 'o', 'd', 'e', Latch.DIGIT, ' ', '2', Shift.UPPER, 'D', Shift.PUNCT, '!'])
+        self.assertEqual(find_optimal_sequence('a\xff'), [Shift.BINARY, 2, 'a', '\xff'])
+        self.assertEqual(find_optimal_sequence('a' + '\xff' * 30), [Shift.BINARY, 31, 'a'] + ['\xff'] * 30)
+        self.assertEqual(find_optimal_sequence('a' + '\xff' * 31), [Shift.BINARY, 0, 1, 'a'] + ['\xff'] * 31)
+        self.assertEqual(find_optimal_sequence('!#$%&?'), [Latch.MIXED, Latch.PUNCT, '!', '#', '$', '%', '&', '?'])
         self.assertEqual(find_optimal_sequence('!#$%&?\xff'), [
-            'M/L', 'P/L', '!', '#', '$', '%', '&', '?', 'U/L', 'B/S', 1, '\xff'])
-        self.assertEqual(find_optimal_sequence('!#$%&\xff'), ['B/S', 6, '!', '#', '$', '%', '&', '\xff'])
-        self.assertEqual(find_optimal_sequence('@\xff'), ['B/S', 2, '@', '\xff'])
-        self.assertEqual(find_optimal_sequence('. @\xff'), ['P/S', '. ', 'B/S', 2, '@', '\xff'])
-        self.assertIn(find_optimal_sequence('. : '), [['P/S', '. ', 'P/S', ': '], ['M/L', 'P/L', '. ', ': ']])
-        self.assertEqual(find_optimal_sequence('\r\n\r\n\r\n'), ['M/L', 'P/L', '\r\n', '\r\n', '\r\n'])
+            Latch.MIXED, Latch.PUNCT, '!', '#', '$', '%', '&', '?', Latch.UPPER, Shift.BINARY, 1, '\xff'])
+        self.assertEqual(find_optimal_sequence('!#$%&\xff'), [Shift.BINARY, 6, '!', '#', '$', '%', '&', '\xff'])
+        self.assertEqual(find_optimal_sequence('@\xff'), [Shift.BINARY, 2, '@', '\xff'])
+        self.assertEqual(find_optimal_sequence('. @\xff'), [Shift.PUNCT, '. ', Shift.BINARY, 2, '@', '\xff'])
+        self.assertIn(find_optimal_sequence('. : '), [[Shift.PUNCT, '. ', Shift.PUNCT, ': '], [Latch.MIXED, Latch.PUNCT, '. ', ': ']])
+        self.assertEqual(find_optimal_sequence('\r\n\r\n\r\n'), [Latch.MIXED, Latch.PUNCT, '\r\n', '\r\n', '\r\n'])
         self.assertEqual(find_optimal_sequence('Code 2D!'), [
-            'C', 'L/L', 'o', 'd', 'e', 'D/L', ' ', '2', 'U/S', 'D', 'P/S', '!'])
+            'C', Latch.LOWER, 'o', 'd', 'e', Latch.DIGIT, ' ', '2', Shift.UPPER, 'D', Shift.PUNCT, '!'])
         self.assertEqual(find_optimal_sequence('test 1!test 2!'), [
-            'L/L', 't', 'e', 's', 't', 'D/L', ' ', '1', 'P/S', '!', 'U/L',
-            'L/L', 't', 'e', 's', 't', 'D/L', ' ', '2', 'P/S', '!'])
+            Latch.LOWER, 't', 'e', 's', 't', Latch.DIGIT, ' ', '1', Shift.PUNCT, '!', Latch.UPPER,
+            Latch.LOWER, 't', 'e', 's', 't', Latch.DIGIT, ' ', '2', Shift.PUNCT, '!'])
         self.assertEqual(find_optimal_sequence('Abc-123X!Abc-123X!'), [
-            'A', 'L/L', 'b', 'c', 'D/L', 'P/S', '-', '1', '2', '3', 'U/L', 'X', 'P/S', '!',
-            'A', 'L/L', 'b', 'c', 'D/L', 'P/S', '-', '1', '2', '3', 'U/S', 'X', 'P/S', '!'])
+            'A', Latch.LOWER, 'b', 'c', Latch.DIGIT, Shift.PUNCT, '-', '1', '2', '3', Latch.UPPER, 'X', Shift.PUNCT, '!',
+            'A', Latch.LOWER, 'b', 'c', Latch.DIGIT, Shift.PUNCT, '-', '1', '2', '3', Shift.UPPER, 'X', Shift.PUNCT, '!'])
         self.assertEqual(find_optimal_sequence('ABCabc1a2b3e'), [
-            'A', 'B', 'C', 'L/L', 'a', 'b', 'c', 'B/S', 5, '1', 'a', '2', 'b', '3', 'e'])
+            'A', 'B', 'C', Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 5, '1', 'a', '2', 'b', '3', 'e'])
         self.assertEqual(find_optimal_sequence('ABCabc1a2b3eBC'), [
-            'A', 'B', 'C', 'L/L', 'a', 'b', 'c', 'B/S', 6, '1', 'a', '2', 'b', '3', 'e', 'M/L', 'U/L', 'B', 'C'])
+            'A', 'B', 'C', Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 6, '1', 'a', '2', 'b', '3', 'e', Latch.MIXED, Latch.UPPER, 'B', 'C'])
         self.assertEqual(find_optimal_sequence('0a|5Tf.l'), [
-            'B/S', 5, '0', 'a', '|', '5', 'T', 'L/L', 'f', 'P/S', '.', 'l'])
+            Shift.BINARY, 5, '0', 'a', '|', '5', 'T', Latch.LOWER, 'f', Shift.PUNCT, '.', 'l'])
         self.assertEqual(find_optimal_sequence('*V1\x0c {Pa'), [
-            'P/S', '*', 'V', 'B/S', 5, '1', '\x0c', ' ', '{', 'P', 'L/L', 'a'])
+            Shift.PUNCT, '*', 'V', Shift.BINARY, 5, '1', '\x0c', ' ', '{', 'P', Latch.LOWER, 'a'])
         self.assertEqual(find_optimal_sequence('~Fxlb"I4'), [
-            'B/S', 7, '~', 'F', 'x', 'l', 'b', '"', 'I', 'D/L', '4'])
+            Shift.BINARY, 7, '~', 'F', 'x', 'l', 'b', '"', 'I', Latch.DIGIT, '4'])
         self.assertEqual(find_optimal_sequence('\\+=R?1'), [
-            'M/L', '\\', 'P/L', '+', '=', 'U/L', 'R', 'D/L', 'P/S', '?', '1'])
+            Latch.MIXED, '\\', Latch.PUNCT, '+', '=', Latch.UPPER, 'R', Latch.DIGIT, Shift.PUNCT, '?', '1'])
 
     def test_optimal_sequence_to_bits(self):
         """ Test optimal_sequence_to_bits function """
         self.assertEqual(optimal_sequence_to_bits([]), '')
-        self.assertEqual(optimal_sequence_to_bits(['P/S']), '00000')
+        self.assertEqual(optimal_sequence_to_bits([Shift.PUNCT]), '00000')
         self.assertEqual(optimal_sequence_to_bits(['A']), '00010')
-        self.assertEqual(optimal_sequence_to_bits(['B/S', 1, '\xff']), '111110000111111111')
-        self.assertEqual(optimal_sequence_to_bits(['B/S', 0, 1, '\xff']), '11111000000000000000111111111')
+        self.assertEqual(optimal_sequence_to_bits([Shift.BINARY, 1, '\xff']), '111110000111111111')
+        self.assertEqual(optimal_sequence_to_bits([Shift.BINARY, 0, 1, '\xff']), '11111000000000000000111111111')
         self.assertEqual(optimal_sequence_to_bits(['A']), '00010')
 
     def test_get_data_codewords(self):

@@ -78,35 +78,33 @@ polynomials = {
 }
 
 Mode = Enum('Mode', ('UPPER', 'LOWER', 'MIXED', 'PUNCT', 'DIGIT', 'BINARY'))
+Latch = Enum('Latch', Mode.__members__)
+Shift = Enum('Shift', Mode.__members__)
+Misc = Enum('Misc', ('FLG', 'SIZE', 'RESUME'))
 
 code_chars = {
     Mode.UPPER: [
-        'P/S', ' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
-        'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'L/L', 'M/L', 'D/L', 'B/S'
+        Shift.PUNCT, ' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
+        'T', 'U', 'V', 'W', 'X', 'Y', 'Z', Latch.LOWER, Latch.MIXED, Latch.DIGIT, Shift.BINARY
     ],
     Mode.LOWER: [
-        'P/S', ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
-        't', 'u', 'v', 'w', 'x', 'y', 'z', 'U/S', 'M/L', 'D/L', 'B/S'
+        Shift.PUNCT, ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
+        't', 'u', 'v', 'w', 'x', 'y', 'z', Shift.UPPER, Latch.MIXED, Latch.DIGIT, Shift.BINARY
     ],
     Mode.MIXED: [
-        'P/S', ' ', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07', '\x08', '\t', '\n', '\x0b', '\x0c', '\r',
-        '\x1b', '\x1c', '\x1d', '\x1e', '\x1f', '@', '\\', '^', '_', '`', '|', '~', '\x7f', 'L/L', 'U/L', 'P/L', 'B/S'
+        Shift.PUNCT, ' ', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07', '\x08', '\t', '\n', '\x0b', '\x0c', '\r',
+        '\x1b', '\x1c', '\x1d', '\x1e', '\x1f', '@', '\\', '^', '_', '`', '|', '~', '\x7f', Latch.LOWER, Latch.UPPER, Latch.PUNCT, Shift.BINARY
     ],
     Mode.PUNCT: [
-        'FLG(n)', '\r', '\r\n', '. ', ', ', ': ', '!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.',
-        '/', ':', ';', '<', '=', '>', '?', '[', ']', '{', '}', 'U/L'
+        Misc.FLG, '\r', '\r\n', '. ', ', ', ': ', '!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.',
+        '/', ':', ';', '<', '=', '>', '?', '[', ']', '{', '}', Latch.UPPER
     ],
     Mode.DIGIT: [
-        'P/S', ' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '.', 'U/L', 'U/S'
+        Shift.PUNCT, ' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '.', Latch.UPPER, Shift.UPPER
     ],
 }
 
-upper_chars = code_chars[Mode.UPPER][1:-4]
-lower_chars = code_chars[Mode.LOWER][1:-4]
-mixed_chars = code_chars[Mode.MIXED][1:-4]
-punct_chars = code_chars[Mode.PUNCT][1:-1]
-digit_chars = code_chars[Mode.DIGIT][1:-2]
-punct_2_chars = [pc for pc in punct_chars if len(pc) == 2]
+punct_2_chars = [pc for pc in code_chars[Mode.PUNCT] if isinstance(pc, str) and len(pc) == 2]
 
 E = 99999  # some big number
 
@@ -233,26 +231,26 @@ def find_optimal_sequence(data):
                             # if changing from punct or digit to binary mode use U/L as intermediate mode
                             # TODO: update for digit
                             back_to[y] = Mode.UPPER
-                            cur_seq[y] = cur_seq[x] + ['U/L', '%s/S' % y.name[0], 'size']
+                            cur_seq[y] = cur_seq[x] + [Latch.UPPER, Shift[y.name], Misc.SIZE]
                         else:
                             back_to[y] = x
-                            cur_seq[y] = cur_seq[x] + ['%s/S' % y.name[0], 'size']
+                            cur_seq[y] = cur_seq[x] + [Shift[y.name], Misc.SIZE]
                     else:
                         if cur_seq[x]:
                             # if changing from punct or digit mode - use U/L as intermediate mode
                             # TODO: update for digit
                             if x in (Mode.PUNCT, Mode.DIGIT) and y != Mode.UPPER:
-                                cur_seq[y] = cur_seq[x] + ['resume', 'U/L', '%s/L' % y.name[0]]
+                                cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch.UPPER, Latch[y.name]]
                                 back_to[y] = y
                             elif x in (Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
-                                cur_seq[y] = cur_seq[x] + ['M/L', '%s/L' % y.name[0]]
+                                cur_seq[y] = cur_seq[x] + [Latch.MIXED, Latch[y.name]]
                                 back_to[y] = y
                             elif x == Mode.MIXED and y != Mode.UPPER:
                                 if y == Mode.PUNCT:
-                                    cur_seq[y] = cur_seq[x] + ['P/L']
+                                    cur_seq[y] = cur_seq[x] + [Latch.PUNCT]
                                     back_to[y] = Mode.PUNCT
                                 else:
-                                    cur_seq[y] = cur_seq[x] + ['U/L', 'D/L']
+                                    cur_seq[y] = cur_seq[x] + [Latch.UPPER, Latch.DIGIT]
                                     back_to[y] = Mode.DIGIT
                                 continue
                             else:
@@ -261,64 +259,53 @@ def find_optimal_sequence(data):
                                     # Reviewed by jravallec
                                     if y == back_to[x]:
                                         # when return from binary to previous mode, skip mode change
-                                        cur_seq[y] = cur_seq[x] + ['resume']
+                                        cur_seq[y] = cur_seq[x] + [Misc.RESUME]
                                     elif y == Mode.UPPER:
                                         if back_to[x] == Mode.LOWER:
-                                            cur_seq[y] = cur_seq[x] + ['resume', 'M/L', 'U/L']
+                                            cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch.MIXED, Latch.UPPER]
                                         if back_to[x] == Mode.MIXED:
-                                            cur_seq[y] = cur_seq[x] + ['resume', 'U/L']
+                                            cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch.UPPER]
                                         back_to[y] = Mode.UPPER
                                     elif y == Mode.LOWER:
-                                        cur_seq[y] = cur_seq[x] + ['resume', 'L/L']
+                                        cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch.LOWER]
                                         back_to[y] = Mode.LOWER
                                     elif y == Mode.MIXED:
-                                        cur_seq[y] = cur_seq[x] + ['resume', 'M/L']
+                                        cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch.MIXED]
                                         back_to[y] = Mode.MIXED
                                     elif y == Mode.PUNCT:
                                         if back_to[x] == Mode.MIXED:
-                                            cur_seq[y] = cur_seq[x] + ['resume', 'P/L']
+                                            cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch.PUNCT]
                                         else:
-                                            cur_seq[y] = cur_seq[x] + ['resume', 'M/L', 'P/L']
+                                            cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch.MIXED, Latch.PUNCT]
                                         back_to[y] = Mode.PUNCT
                                     elif y == Mode.DIGIT:
                                         if back_to[x] == Mode.MIXED:
-                                            cur_seq[y] = cur_seq[x] + ['resume', 'U/L', 'D/L']
+                                            cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch.UPPER, Latch.DIGIT]
                                         else:
-                                            cur_seq[y] = cur_seq[x] + ['resume', 'D/L']
+                                            cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch.DIGIT]
                                         back_to[y] = Mode.DIGIT
                                 else:
-                                    cur_seq[y] = cur_seq[x] + ['resume', '%s/L' % y.name[0]]
+                                    cur_seq[y] = cur_seq[x] + [Misc.RESUME, Latch[y.name]]
                                     back_to[y] = y
                         else:
                             # if changing from punct or digit mode - use U/L as intermediate mode
                             # TODO: update for digit
                             if x in (Mode.PUNCT, Mode.DIGIT):
-                                cur_seq[y] = cur_seq[x] + ['U/L', '%s/L' % y.name[0]]
+                                cur_seq[y] = cur_seq[x] + [Latch.UPPER, Latch[y.name]]
                                 back_to[y] = y
                             elif x in (Mode.BINARY, Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
-                                cur_seq[y] = cur_seq[x] + ['M/L', '%s/L' % y.name[0]]
+                                cur_seq[y] = cur_seq[x] + [Latch.MIXED, Latch[y.name]]
                                 back_to[y] = y
                             else:
-                                cur_seq[y] = cur_seq[x] + ['%s/L' % y.name[0]]
+                                cur_seq[y] = cur_seq[x] + [Latch[y.name]]
                                 back_to[y] = y
         next_len = {m:E for m in Mode}
         next_seq = {m:[] for m in Mode}
-        possible_modes = []
-        if c in upper_chars:
-            possible_modes.append(Mode.UPPER)
-        if c in lower_chars:
-            possible_modes.append(Mode.LOWER)
-        if c in mixed_chars:
-            possible_modes.append(Mode.MIXED)
-        if c in punct_chars:
-            possible_modes.append(Mode.PUNCT)
-        if c in digit_chars:
-            possible_modes.append(Mode.DIGIT)
-        possible_modes.append(Mode.BINARY)
+        possible_modes = [m for m in Mode if m == Mode.BINARY or c in code_chars[m]]
         for x in possible_modes:
             # TODO: review this!
             if back_to[x] == Mode.DIGIT and x == Mode.LOWER:
-                cur_seq[x] = cur_seq[x] +  ['U/L', 'L/L']
+                cur_seq[x] = cur_seq[x] +  [Latch.UPPER, Latch.LOWER]
                 cur_len[x] = cur_len[x] + latch_len[back_to[x]][x]
                 back_to[x] = Mode.LOWER
             # add char to current sequence
@@ -330,14 +317,14 @@ def find_optimal_sequence(data):
                     continue
                 if cur_len[y] + shift_len[y][x] + char_size[x] < next_len[y]:
                     next_len[y] = cur_len[y] + shift_len[y][x] + char_size[x]
-                    next_seq[y] = cur_seq[y] + ['%s/S' % x.name[0]] + [c]
+                    next_seq[y] = cur_seq[y] + [Shift[x.name], c]
         # TODO: review this!!!
         if prev_c and prev_c + c in punct_2_chars:
             for x in Mode:
-                last_mode = ''
+                last_mode = None
                 for char in cur_seq[x][::-1]:
-                    if char.replace('/S', '').replace('/L', '') in abbr_modes:
-                        last_mode = abbr_modes.get(char.replace('/S', '').replace('/L', ''))
+                    if char in Shift or char in Latch:
+                        last_mode = char.value
                         break
                 if last_mode == Mode.PUNCT:
                     if cur_seq[x][-1] + c in punct_2_chars:
@@ -361,15 +348,15 @@ def find_optimal_sequence(data):
     result_seq_len = len(result_seq)
     reset_pos = result_seq_len - 1
     for i, c in enumerate(result_seq[::-1]):
-        if c == 'size':
+        if c == Misc.SIZE:
             sizes[i] = reset_pos - (result_seq_len - i - 1)
             reset_pos = result_seq_len - i
-        elif c == 'resume':
+        elif c == Misc.RESUME:
             reset_pos = result_seq_len - i - 2
     for size_pos in sizes:
         result_seq[len(result_seq) - size_pos - 1] = sizes[size_pos]
     # remove 'resume' tokens
-    result_seq = [x for x in result_seq if x != 'resume']
+    result_seq = [x for x in result_seq if x != Misc.RESUME]
     # update binary sequences' extra sizes
     updated_result_seq = []
     is_binary_length = False
@@ -384,7 +371,7 @@ def find_optimal_sequence(data):
         else:
             updated_result_seq.append(c)
 
-        if c == 'B/S':
+        if c == Shift.BINARY:
             is_binary_length = True
 
     return updated_result_seq
@@ -424,10 +411,9 @@ def optimal_sequence_to_bits(optimal_sequence):
             mode = prev_mode
             shift = False
         # get mode from sequence character
-        if ch.endswith('/L'):
-            mode = abbr_modes.get(ch.replace('/L', ''))
-        elif ch.endswith('/S'):
-            mode = abbr_modes.get(ch.replace('/S', ''))
+        if ch in Latch or ch in Shift:
+            mode = ch.value
+        if ch in Shift:
             shift = True
         # handle binary mode
         if mode == Mode.BINARY:
