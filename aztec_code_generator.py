@@ -156,13 +156,7 @@ char_size = {
     Mode.UPPER: 5, Mode.LOWER: 5, Mode.MIXED: 5, Mode.PUNCT: 5, Mode.DIGIT: 4, Mode.BINARY: 8,
 }
 
-modes = [
-    Mode.UPPER, Mode.LOWER, Mode.MIXED, Mode.PUNCT, Mode.DIGIT, Mode.BINARY,
-]
-
-abbr_modes = {
-    'U': Mode.UPPER, 'L': Mode.LOWER, 'M': Mode.MIXED, 'P': Mode.PUNCT, 'D': Mode.DIGIT, 'B': Mode.BINARY,
-}
+abbr_modes = {m.name[0]:m for m in Mode}
 
 
 def prod(x, y, log, alog, gf):
@@ -224,20 +218,13 @@ def find_optimal_sequence(data):
     :param data: data to encode
     :return: optimal sequence
     """
-    back_to = {
-        Mode.UPPER: Mode.UPPER, Mode.LOWER: Mode.UPPER, Mode.MIXED: Mode.UPPER,
-        Mode.PUNCT: Mode.UPPER, Mode.DIGIT: Mode.UPPER, Mode.BINARY: Mode.UPPER
-    }
-    cur_len = {
-        Mode.UPPER: 0, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: E, Mode.DIGIT: E, Mode.BINARY: E
-    }
-    cur_seq = {
-        Mode.UPPER: [], Mode.LOWER: [], Mode.MIXED: [], Mode.PUNCT: [], Mode.DIGIT: [], Mode.BINARY: []
-    }
+    back_to = {m: Mode.UPPER for m in Mode}
+    cur_len = {m: 0 if m==Mode.UPPER else E for m in Mode}
+    cur_seq = {m: [] for m in Mode}
     prev_c = ''
     for c in data:
-        for x in modes:
-            for y in modes:
+        for x in Mode:
+            for y in Mode:
                 if cur_len[x] + latch_len[x][y] < cur_len[y]:
                     cur_len[y] = cur_len[x] + latch_len[x][y]
                     if y == Mode.BINARY:
@@ -314,12 +301,8 @@ def find_optimal_sequence(data):
                             else:
                                 cur_seq[y] = cur_seq[x] + ['%s/L' % y.name[0]]
                                 back_to[y] = y
-        next_len = {
-            Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: E, Mode.DIGIT: E, Mode.BINARY: E
-        }
-        next_seq = {
-            Mode.UPPER: [], Mode.LOWER: [], Mode.MIXED: [], Mode.PUNCT: [], Mode.DIGIT: [], Mode.BINARY: []
-        }
+        next_len = {m:E for m in Mode}
+        next_seq = {m:[] for m in Mode}
         possible_modes = []
         if c in upper_chars:
             possible_modes.append(Mode.UPPER)
@@ -342,15 +325,15 @@ def find_optimal_sequence(data):
             if cur_len[x] + char_size[x] < next_len[x]:
                 next_len[x] = cur_len[x] + char_size[x]
                 next_seq[x] = cur_seq[x] + [c]
-            for y in modes[:-1]:
-                if y == x:
+            for y in Mode:
+                if y == x or y == Mode.BINARY:
                     continue
                 if cur_len[y] + shift_len[y][x] + char_size[x] < next_len[y]:
                     next_len[y] = cur_len[y] + shift_len[y][x] + char_size[x]
                     next_seq[y] = cur_seq[y] + ['%s/S' % x.name[0]] + [c]
         # TODO: review this!!!
         if prev_c and prev_c + c in punct_2_chars:
-            for x in modes:
+            for x in Mode:
                 last_mode = ''
                 for char in cur_seq[x][::-1]:
                     if char.replace('/S', '').replace('/L', '') in abbr_modes:
@@ -363,7 +346,7 @@ def find_optimal_sequence(data):
                             next_seq[x] = cur_seq[x][:-1] + [cur_seq[x][-1] + c]
         if len(next_seq[Mode.BINARY]) - 2 == 32:
             next_len[Mode.BINARY] += 11
-        for i in modes:
+        for i in Mode:
             cur_len[i] = next_len[i]
             cur_seq[i] = next_seq[i]
         prev_c = c
