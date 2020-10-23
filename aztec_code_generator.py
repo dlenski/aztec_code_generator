@@ -547,10 +547,24 @@ class AztecCode(object):
                     fill=not self.matrix[y][x])
         return image
 
-    def print_out(self):
-        """ Print out Aztec code matrix """
+    def print_out(self, border=0):
+        """ Print out Aztec code matrix using ASCII output """
+        print('\n'.join(' '*(2*border + self.size) for ii in range(border)))
         for line in self.matrix:
-            print(''.join(('#' if x else ' ') for x in line))
+            print(' '*border + ''.join(('#' if x else ' ') for x in line) + ' '*border)
+        print('\n'.join(' '*(2*border + self.size) for ii in range(border)))
+
+    def print_fancy(self, border=0):
+        """ Print out Aztec code matrix using Unicode box-drawing characters and ANSI colorization """
+        for y in range(-border, self.size+border, 2):
+            last_half_row = (y==self.size + border - 1)
+            ul = '\x1b[40;37;1m' + ('\u2580' if last_half_row else '\u2588')*border
+            for x in range(0, self.size):
+                a = self.matrix[y][x] if 0 <= y < self.size else None
+                b = self.matrix[y+1][x] if -1 <= y < self.size-1 else last_half_row
+                ul += ' ' if a and b else '\u2584' if a else '\u2580' if b else '\u2588'
+            ul += ('\u2580' if last_half_row else '\u2588')*border + '\x1b[0m'
+            print(ul)
 
     def __add_finder_pattern(self):
         """ Add bulls-eye finder pattern """
@@ -794,7 +808,7 @@ def main(argv):
     if len(sys.argv) == 3:
         aztec_code.save(argv[2], module_size=5)
     else:
-        aztec_code.print_out()
+        aztec_code.print_fancy(border=2)
 
 
 if __name__ == '__main__':
