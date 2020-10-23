@@ -498,7 +498,7 @@ def find_suitable_matrix_size(data):
         required_bits_count = int(math.ceil(len(out_bits) * 100.0 / (
             100 - ec_percent) + 3 * 100.0 / (100 - ec_percent)))
         if required_bits_count < bits:
-            return size, compact
+            return size, compact, optimal_sequence
     raise Exception('Data too big to fit in one Aztec code!')
 
 class AztecCode(object):
@@ -516,6 +516,7 @@ class AztecCode(object):
         :param compact: compactness flag
         """
         self.data = data
+        self.sequence = None
         if size is not None and compact is not None:
             if (size, compact) in table:
                 self.size, self.compact = size, compact
@@ -523,7 +524,7 @@ class AztecCode(object):
                 raise Exception(
                     'Given size and compact values (%s, %s) are not found in sizes table!' % (size, compact))
         else:
-            self.size, self.compact = find_suitable_matrix_size(self.data)
+            self.size, self.compact, self.sequence = find_suitable_matrix_size(self.data)
         self.__create_matrix()
         self.__encode_data()
 
@@ -681,8 +682,9 @@ class AztecCode(object):
         :param data: data to encode
         :return: number of data codewords
         """
-        optimal_sequence = find_optimal_sequence(data)
-        out_bits = optimal_sequence_to_bits(optimal_sequence)
+        if not self.sequence:
+            self.sequence = find_optimal_sequence(data)
+        out_bits = optimal_sequence_to_bits(self.sequence)
         config = get_config_from_table(self.size, self.compact)
         layers_count = config.layers
         cw_count = config.codewords
