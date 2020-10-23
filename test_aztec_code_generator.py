@@ -81,9 +81,7 @@ class Test(unittest.TestCase):
             Latch.MIXED, '\\', Latch.PUNCT, '+', '=', Latch.UPPER, 'R', Latch.DIGIT, Shift.PUNCT, '?', '1'))
 
         # Non-ASCII strings
-        self.assertEqual(find_optimal_sequence('Français', 'utf8'), b(
-            'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 2, 0xc3, 0xa7, 'a', 'i', 's'))
-        self.assertEqual(find_optimal_sequence('Français', 'iso-8859-1'), b(
+        self.assertEqual(find_optimal_sequence('Français'), b(
             'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 1, 0xe7, 'a', 'i', 's'))
 
     def test_optimal_sequence_to_bits(self):

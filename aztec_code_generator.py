@@ -194,13 +194,12 @@ def reed_solomon(wd, nd, nc, gf, pp):
                 wd[nd + j] ^= wd[nd + j + 1]
 
 
-def find_optimal_sequence(data, encoding=None):
+def find_optimal_sequence(data):
     """ Find optimal sequence, i.e. with minimum number of bits to encode data.
 
     TODO: add support of FLG(n) processing
 
     :param data: string or bytes to encode
-    :param encoding: encoding to use for string data
     :return: optimal sequence
     """
     back_to = {m: Mode.UPPER for m in Mode}
@@ -208,7 +207,7 @@ def find_optimal_sequence(data, encoding=None):
     cur_seq = {m: [] for m in Mode}
     prev_c = None
     if isinstance(data, str):
-        data = data.encode(encoding) if encoding else data.encode()
+        data = data.encode('iso-8859-1')
     for c in data:
         for x in Mode:
             for y in Mode:
@@ -459,15 +458,14 @@ def get_config_from_table(size, compact):
         raise Exception('Failed to find config with size and compactness flag')
     return config
 
-def find_suitable_matrix_size(data, encoding=None):
+def find_suitable_matrix_size(data):
     """ Find suitable matrix size
     Raise an exception if suitable size is not found
 
     :param data: string or bytes to encode
-    :param encoding: encoding to use for string data
     :return: (size, compact) tuple
     """
-    optimal_sequence = find_optimal_sequence(data, encoding)
+    optimal_sequence = find_optimal_sequence(data)
     out_bits = optimal_sequence_to_bits(optimal_sequence)
     for (size, compact) in sorted(table.keys()):
         config = get_config_from_table(size, compact)
@@ -486,7 +484,7 @@ class AztecCode(object):
     Aztec code generator
     """
 
-    def __init__(self, data, size=None, compact=None, encoding=None):
+    def __init__(self, data, size=None, compact=None):
         """ Create Aztec code with given data.
         If size and compact parameters are None (by default), an
         optimal size and compactness calculated based on the data.
@@ -494,10 +492,8 @@ class AztecCode(object):
         :param data: string or bytes to encode
         :param size: size of matrix
         :param compact: compactness flag
-        :param encoding: encoding to use for string data
         """
         self.data = data
-        self.encoding = encoding
         if size is not None and compact is not None:
             if (size, compact) in table:
                 self.size, self.compact = size, compact
@@ -657,13 +653,13 @@ class AztecCode(object):
             self.matrix[center + y][center + x] = (bit == '1')
             index += 1
 
-    def __add_data(self, data, encoding):
+    def __add_data(self, data):
         """ Add data to encode to the matrix
 
         :param data: data to encode
         :return: number of data codewords
         """
-        optimal_sequence = find_optimal_sequence(data, encoding)
+        optimal_sequence = find_optimal_sequence(data)
         out_bits = optimal_sequence_to_bits(optimal_sequence)
         config = get_config_from_table(self.size, self.compact)
         layers_count = config.layers
@@ -776,7 +772,7 @@ class AztecCode(object):
         self.__add_finder_pattern()
         self.__add_orientation_marks()
         self.__add_reference_grid()
-        data_cw_count = self.__add_data(self.data, self.encoding)
+        data_cw_count = self.__add_data(self.data)
         self.__add_mode_info(data_cw_count)
 
 
