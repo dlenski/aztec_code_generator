@@ -358,26 +358,12 @@ def optimal_sequence_to_bits(optimal_sequence):
     :return: string with bits
     """
     out_bits = ''
-    mode = Mode.UPPER
-    prev_mode = Mode.UPPER
+    mode = prev_mode = Mode.UPPER
     shift = False
-    binary = False
-    binary_seq_len = 0
-    binary_index = 0
     sequence = optimal_sequence[:]
-    while True:
-        if not sequence:
-            break
+    while sequence:
         # read one item from sequence
         ch = sequence.pop(0)
-        if binary:
-            out_bits += bin(ch)[2:].zfill(char_size.get(mode))
-            binary_index += 1
-            # resume previous mode at the end of the binary sequence
-            if binary_index >= binary_seq_len:
-                mode = prev_mode
-                binary = False
-            continue
         index = code_chars.get(mode).index(ch)
         out_bits += bin(index)[2:].zfill(char_size.get(mode))
         # resume previous mode for shift
@@ -385,12 +371,10 @@ def optimal_sequence_to_bits(optimal_sequence):
             mode = prev_mode
             shift = False
         # get mode from sequence character
-        if ch in Latch or ch in Shift:
+        if ch in Latch:
             mode = ch.value
-        if ch in Shift:
-            shift = True
         # handle FLG(n)
-        if ch == Misc.FLG:
+        elif ch == Misc.FLG:
             if not sequence:
                 raise Exception('Expected FLG(n) value')
             flg_n = sequence.pop(0)
@@ -411,8 +395,8 @@ def optimal_sequence_to_bits(optimal_sequence):
                 for ch in out_digits:
                     index = code_chars[Mode.DIGIT].index(ch)
                     out_bits += bin(index)[2:].zfill(char_size[Mode.DIGIT])
-        # handle binary mode
-        if mode == Mode.BINARY:
+        # handle binary run
+        elif ch == Shift.BINARY:
             if not sequence:
                 raise Exception('Expected binary sequence length')
             # followed by a 5 bit length
@@ -428,11 +412,13 @@ def optimal_sequence_to_bits(optimal_sequence):
                     raise Exception('Binary sequence length must be a number')
                 out_bits += bin(seq_len)[2:].zfill(11)
                 binary_seq_len = seq_len + 31
-            binary = True
-            binary_index = 0
-        # update previous mode
-        if not shift:
-            prev_mode = mode
+            for binary_index in range(binary_seq_len):
+                ch = sequence.pop(0)
+                out_bits += bin(ch)[2:].zfill(char_size[Mode.BINARY])
+        # handle other shift
+        elif ch in Shift:
+            mode, prev_mode = ch.value, mode
+            shift = True
     return out_bits
 
 

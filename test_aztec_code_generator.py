@@ -94,7 +94,7 @@ class Test(unittest.TestCase):
         self.assertEqual(optimal_sequence_to_bits(b(Shift.PUNCT)), '00000')
         self.assertEqual(optimal_sequence_to_bits(b('A')), '00010')
         self.assertEqual(optimal_sequence_to_bits(b(Shift.BINARY, 1, '\xff')), '111110000111111111')
-        self.assertEqual(optimal_sequence_to_bits(b(Shift.BINARY, 0, 1, '\xff')), '11111000000000000000111111111')
+        self.assertEqual(optimal_sequence_to_bits(b(Shift.BINARY, 0, 1) + [0xff] * 32), '111110000000000000001' + '11111111'*32)
         self.assertEqual(optimal_sequence_to_bits(b('A')), '00010')
         self.assertEqual(optimal_sequence_to_bits(b(Shift.PUNCT, Misc.FLG, 0, 'A')), '000000000000000010')
         self.assertEqual(optimal_sequence_to_bits(b(Shift.PUNCT, Misc.FLG, 1, 3, 'A')), '0000000000001' + '0101' + '00010') # FLG(1) '3'
