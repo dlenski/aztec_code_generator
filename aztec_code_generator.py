@@ -212,6 +212,7 @@ def find_optimal_sequence(data):
                 if cur_len[x] + latch_len[x][y] < cur_len[y]:
                     cur_len[y] = cur_len[x] + latch_len[x][y]
                     cur_seq[y] = cur_seq[x][:]
+                    back_to[y] = y
                     if y == Mode.BINARY:
                         # for binary mode use B/S instead of B/L
                         if x in (Mode.PUNCT, Mode.DIGIT):
@@ -228,10 +229,8 @@ def find_optimal_sequence(data):
                             # TODO: update for digit
                             if x in (Mode.PUNCT, Mode.DIGIT) and y != Mode.UPPER:
                                 cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch[y.name]]
-                                back_to[y] = y
                             elif x in (Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
                                 cur_seq[y] += [Latch.MIXED, Latch[y.name]]
-                                back_to[y] = y
                             elif x == Mode.MIXED and y != Mode.UPPER:
                                 if y == Mode.PUNCT:
                                     cur_seq[y] += [Latch.PUNCT]
@@ -252,40 +251,31 @@ def find_optimal_sequence(data):
                                             cur_seq[y] += [Misc.RESUME, Latch.MIXED, Latch.UPPER]
                                         if back_to[x] == Mode.MIXED:
                                             cur_seq[y] += [Misc.RESUME, Latch.UPPER]
-                                        back_to[y] = Mode.UPPER
                                     elif y == Mode.LOWER:
                                         cur_seq[y] += [Misc.RESUME, Latch.LOWER]
-                                        back_to[y] = Mode.LOWER
                                     elif y == Mode.MIXED:
                                         cur_seq[y] += [Misc.RESUME, Latch.MIXED]
-                                        back_to[y] = Mode.MIXED
                                     elif y == Mode.PUNCT:
                                         if back_to[x] == Mode.MIXED:
                                             cur_seq[y] += [Misc.RESUME, Latch.PUNCT]
                                         else:
                                             cur_seq[y] += [Misc.RESUME, Latch.MIXED, Latch.PUNCT]
-                                        back_to[y] = Mode.PUNCT
                                     elif y == Mode.DIGIT:
                                         if back_to[x] == Mode.MIXED:
                                             cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch.DIGIT]
                                         else:
                                             cur_seq[y] += [Misc.RESUME, Latch.DIGIT]
-                                        back_to[y] = Mode.DIGIT
                                 else:
                                     cur_seq[y] += [Misc.RESUME, Latch[y.name]]
-                                    back_to[y] = y
                         else:
                             # if changing from punct or digit mode - use U/L as intermediate mode
                             # TODO: update for digit
                             if x in (Mode.PUNCT, Mode.DIGIT):
                                 cur_seq[y] = [Latch.UPPER, Latch[y.name]]
-                                back_to[y] = y
                             elif x in (Mode.BINARY, Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
                                 cur_seq[y] = [Latch.MIXED, Latch[y.name]]
-                                back_to[y] = y
                             else:
                                 cur_seq[y] = [Latch[y.name]]
-                                back_to[y] = y
         next_len = {m:E for m in Mode}
         next_seq = {m:[] for m in Mode}
         possible_modes = [m for m in Mode if m == Mode.BINARY or c in code_chars[m]]
