@@ -83,25 +83,11 @@ Shift = Enum('Shift', Mode.__members__)
 Misc = Enum('Misc', ('FLG', 'SIZE', 'RESUME'))
 
 code_chars = {
-    Mode.UPPER: [
-        Shift.PUNCT, ' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
-        'T', 'U', 'V', 'W', 'X', 'Y', 'Z', Latch.LOWER, Latch.MIXED, Latch.DIGIT, Shift.BINARY
-    ],
-    Mode.LOWER: [
-        Shift.PUNCT, ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
-        't', 'u', 'v', 'w', 'x', 'y', 'z', Shift.UPPER, Latch.MIXED, Latch.DIGIT, Shift.BINARY
-    ],
-    Mode.MIXED: [
-        Shift.PUNCT, ' ', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07', '\x08', '\t', '\n', '\x0b', '\x0c', '\r',
-        '\x1b', '\x1c', '\x1d', '\x1e', '\x1f', '@', '\\', '^', '_', '`', '|', '~', '\x7f', Latch.LOWER, Latch.UPPER, Latch.PUNCT, Shift.BINARY
-    ],
-    Mode.PUNCT: [
-        Misc.FLG, '\r', '\r\n', '. ', ', ', ': ', '!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.',
-        '/', ':', ';', '<', '=', '>', '?', '[', ']', '{', '}', Latch.UPPER
-    ],
-    Mode.DIGIT: [
-        Shift.PUNCT, ' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '.', Latch.UPPER, Shift.UPPER
-    ],
+    Mode.UPPER: [Shift.PUNCT] + list(' ABCDEFGHIJKLMNOPQRSTUVWXYZ') + [Latch.LOWER, Latch.MIXED, Latch.DIGIT, Shift.BINARY],
+    Mode.LOWER: [Shift.PUNCT] + list(' abcdefghijklmnopqrstuvwxyz') + [Shift.UPPER, Latch.MIXED, Latch.DIGIT, Shift.BINARY],
+    Mode.MIXED: [Shift.PUNCT] + list(' \x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x1b\x1c\x1d\x1e\x1f@\\^_`|~\x7f') + [Latch.LOWER, Latch.UPPER, Latch.PUNCT, Shift.BINARY],
+    Mode.PUNCT: [Misc.FLG, '\r', '\r\n', '. ', ', ', ': '] + list('!"#$%&\'()*+,-./:;<=>?[]{}') + [Latch.UPPER],
+    Mode.DIGIT: [Shift.PUNCT] + list(' 0123456789,.') + [Latch.UPPER, Shift.UPPER],
 }
 
 punct_2_chars = [pc for pc in code_chars[Mode.PUNCT] if isinstance(pc, str) and len(pc) == 2]
@@ -219,7 +205,7 @@ def find_optimal_sequence(data):
     back_to = {m: Mode.UPPER for m in Mode}
     cur_len = {m: 0 if m==Mode.UPPER else E for m in Mode}
     cur_seq = {m: [] for m in Mode}
-    prev_c = ''
+    prev_c = None
     for c in data:
         for x in Mode:
             for y in Mode:
@@ -321,11 +307,8 @@ def find_optimal_sequence(data):
         # TODO: review this!!!
         if prev_c and prev_c + c in punct_2_chars:
             for x in Mode:
-                last_mode = None
-                for char in cur_seq[x][::-1]:
-                    if char in Shift or char in Latch:
-                        last_mode = char.value
-                        break
+                # Will never StopIteration because we must have one S/L already since prev_c is PUNCT
+                last_mode = next(s.value for s in reversed(cur_seq[x]) if s in Latch or s in Shift)
                 if last_mode == Mode.PUNCT:
                     if cur_seq[x][-1] + c in punct_2_chars:
                         if cur_len[x] < next_len[x]:
@@ -347,7 +330,7 @@ def find_optimal_sequence(data):
     sizes = {}
     result_seq_len = len(result_seq)
     reset_pos = result_seq_len - 1
-    for i, c in enumerate(result_seq[::-1]):
+    for i, c in enumerate(reversed(result_seq)):
         if c == Misc.SIZE:
             sizes[i] = reset_pos - (result_seq_len - i - 1)
             reset_pos = result_seq_len - i
