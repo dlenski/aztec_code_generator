@@ -480,11 +480,12 @@ def get_config_from_table(size, compact):
         raise Exception('Failed to find config with size and compactness flag')
     return config
 
-def find_suitable_matrix_size(data):
+def find_suitable_matrix_size(data, ec_percent=23):
     """ Find suitable matrix size
     Raise an exception if suitable size is not found
 
     :param data: string or bytes to encode
+    :param ec_percent: percentage of symbol capacity for error correction (default 23%)
     :return: (size, compact) tuple
     """
     optimal_sequence = find_optimal_sequence(data)
@@ -492,11 +493,8 @@ def find_suitable_matrix_size(data):
     for (size, compact) in sorted(table.keys()):
         config = get_config_from_table(size, compact)
         bits = config.bits
-        # error correction percent
-        ec_percent = 23  # recommended: 23% of symbol capacity plus 3 codewords
         # calculate minimum required number of bits
-        required_bits_count = int(math.ceil(len(out_bits) * 100.0 / (
-            100 - ec_percent) + 3 * 100.0 / (100 - ec_percent)))
+        required_bits_count = int(math.ceil((len(out_bits) + 3) * 100.0 / (100 - ec_percent)))
         if required_bits_count < bits:
             return size, compact, optimal_sequence
     raise Exception('Data too big to fit in one Aztec code!')
@@ -506,7 +504,7 @@ class AztecCode(object):
     Aztec code generator
     """
 
-    def __init__(self, data, size=None, compact=None):
+    def __init__(self, data, size=None, compact=None, ec_percent=23):
         """ Create Aztec code with given data.
         If size and compact parameters are None (by default), an
         optimal size and compactness calculated based on the data.
@@ -514,9 +512,11 @@ class AztecCode(object):
         :param data: string or bytes to encode
         :param size: size of matrix
         :param compact: compactness flag
+        :param ec_percent: percentage of symbol capacity for error correction (default 23%)
         """
         self.data = data
         self.sequence = None
+        self.ec_percent = ec_percent
         if size is not None and compact is not None:
             if (size, compact) in table:
                 self.size, self.compact = size, compact
@@ -524,7 +524,7 @@ class AztecCode(object):
                 raise Exception(
                     'Given size and compact values (%s, %s) are not found in sizes table!' % (size, compact))
         else:
-            self.size, self.compact, self.sequence = find_suitable_matrix_size(self.data)
+            self.size, self.compact, self.sequence = find_suitable_matrix_size(self.data, ec_percent)
         self.__create_matrix()
         self.__encode_data()
 
@@ -545,6 +545,7 @@ class AztecCode(object):
         """ Create PIL image
 
         :param module_size: barcode module size in pixels.
+        :param border: barcode border size in modules
         """
         if ImageDraw is None:
             exc = missing_pil[0](missing_pil[1])
@@ -691,11 +692,8 @@ class AztecCode(object):
         cw_bits = config.cw_bits
         bits = config.bits
 
-        # error correction percent
-        ec_percent = 23  # recommended
         # calculate minimum required number of bits
-        required_bits_count = int(math.ceil(len(out_bits) * 100.0 / (
-            100 - ec_percent) + 3 * 100.0 / (100 - ec_percent)))
+        required_bits_count = int(math.ceil((len(out_bits) + 3) * 100.0 / (100 - self.ec_percent)))
         data_codewords = get_data_codewords(out_bits, cw_bits)
         if required_bits_count > bits:
             raise Exception('Data too big to fit in Aztec code with current size!')
