@@ -223,59 +223,57 @@ def find_optimal_sequence(data):
                         else:
                             back_to[y] = x
                             cur_seq[y] += [Shift.BINARY, Misc.SIZE]
-                    else:
-                        if cur_seq[x]:
-                            # if changing from punct or digit mode - use U/L as intermediate mode
-                            # TODO: update for digit
-                            if x in (Mode.PUNCT, Mode.DIGIT) and y != Mode.UPPER:
-                                cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch[y.name]]
-                            elif x in (Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
-                                cur_seq[y] += [Latch.MIXED, Latch[y.name]]
-                            elif x == Mode.MIXED and y != Mode.UPPER:
-                                if y == Mode.PUNCT:
-                                    cur_seq[y] += [Latch.PUNCT]
-                                    back_to[y] = Mode.PUNCT
-                                else:
-                                    cur_seq[y] += [Latch.UPPER, Latch.DIGIT]
-                                    back_to[y] = Mode.DIGIT
-                                continue
+                    elif cur_seq[x]:
+                        # if changing from punct or digit mode - use U/L as intermediate mode
+                        # TODO: update for digit
+                        if x in (Mode.PUNCT, Mode.DIGIT) and y != Mode.UPPER:
+                            cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch[y.name]]
+                        elif x in (Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
+                            cur_seq[y] += [Latch.MIXED, Latch[y.name]]
+                        elif x == Mode.MIXED and y != Mode.UPPER:
+                            if y == Mode.PUNCT:
+                                cur_seq[y] += [Latch.PUNCT]
+                                back_to[y] = Mode.PUNCT
                             else:
-                                if x == Mode.BINARY:
-                                    # TODO: review this
-                                    # Reviewed by jravallec
-                                    if y == back_to[x]:
-                                        # when return from binary to previous mode, skip mode change
-                                        cur_seq[y] += [Misc.RESUME]
-                                    elif y == Mode.UPPER:
-                                        if back_to[x] == Mode.LOWER:
-                                            cur_seq[y] += [Misc.RESUME, Latch.MIXED, Latch.UPPER]
-                                        if back_to[x] == Mode.MIXED:
-                                            cur_seq[y] += [Misc.RESUME, Latch.UPPER]
-                                    elif y == Mode.LOWER:
-                                        cur_seq[y] += [Misc.RESUME, Latch.LOWER]
-                                    elif y == Mode.MIXED:
-                                        cur_seq[y] += [Misc.RESUME, Latch.MIXED]
-                                    elif y == Mode.PUNCT:
-                                        if back_to[x] == Mode.MIXED:
-                                            cur_seq[y] += [Misc.RESUME, Latch.PUNCT]
-                                        else:
-                                            cur_seq[y] += [Misc.RESUME, Latch.MIXED, Latch.PUNCT]
-                                    elif y == Mode.DIGIT:
-                                        if back_to[x] == Mode.MIXED:
-                                            cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch.DIGIT]
-                                        else:
-                                            cur_seq[y] += [Misc.RESUME, Latch.DIGIT]
+                                cur_seq[y] += [Latch.UPPER, Latch.DIGIT]
+                                back_to[y] = Mode.DIGIT
+                            continue
+                        elif x == Mode.BINARY:
+                            # TODO: review this
+                            # Reviewed by jravallec
+                            if y == back_to[x]:
+                                # when return from binary to previous mode, skip mode change
+                                cur_seq[y] += [Misc.RESUME]
+                            elif y == Mode.UPPER:
+                                if back_to[x] == Mode.LOWER:
+                                    cur_seq[y] += [Misc.RESUME, Latch.MIXED, Latch.UPPER]
+                                if back_to[x] == Mode.MIXED:
+                                    cur_seq[y] += [Misc.RESUME, Latch.UPPER]
+                            elif y == Mode.LOWER:
+                                cur_seq[y] += [Misc.RESUME, Latch.LOWER]
+                            elif y == Mode.MIXED:
+                                cur_seq[y] += [Misc.RESUME, Latch.MIXED]
+                            elif y == Mode.PUNCT:
+                                if back_to[x] == Mode.MIXED:
+                                    cur_seq[y] += [Misc.RESUME, Latch.PUNCT]
                                 else:
-                                    cur_seq[y] += [Misc.RESUME, Latch[y.name]]
+                                    cur_seq[y] += [Misc.RESUME, Latch.MIXED, Latch.PUNCT]
+                            elif y == Mode.DIGIT:
+                                if back_to[x] == Mode.MIXED:
+                                    cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch.DIGIT]
+                                else:
+                                    cur_seq[y] += [Misc.RESUME, Latch.DIGIT]
                         else:
-                            # if changing from punct or digit mode - use U/L as intermediate mode
-                            # TODO: update for digit
-                            if x in (Mode.PUNCT, Mode.DIGIT):
-                                cur_seq[y] = [Latch.UPPER, Latch[y.name]]
-                            elif x in (Mode.BINARY, Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
-                                cur_seq[y] = [Latch.MIXED, Latch[y.name]]
-                            else:
-                                cur_seq[y] = [Latch[y.name]]
+                            cur_seq[y] += [Misc.RESUME, Latch[y.name]]
+                    else:
+                        # if changing from punct or digit mode - use U/L as intermediate mode
+                        # TODO: update for digit
+                        if x in (Mode.PUNCT, Mode.DIGIT):
+                            cur_seq[y] = [Latch.UPPER, Latch[y.name]]
+                        elif x in (Mode.BINARY, Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
+                            cur_seq[y] = [Latch.MIXED, Latch[y.name]]
+                        else:
+                            cur_seq[y] = [Latch[y.name]]
         next_len = {m:E for m in Mode}
         next_seq = {m:[] for m in Mode}
         possible_modes = [m for m in Mode if m == Mode.BINARY or c in code_chars[m]]
