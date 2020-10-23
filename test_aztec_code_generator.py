@@ -41,6 +41,9 @@ class Test(unittest.TestCase):
         self.assertEqual(find_optimal_sequence('a\xff'), [Shift.BINARY, 2, 'a', '\xff'])
         self.assertEqual(find_optimal_sequence('a' + '\xff' * 30), [Shift.BINARY, 31, 'a'] + ['\xff'] * 30)
         self.assertEqual(find_optimal_sequence('a' + '\xff' * 31), [Shift.BINARY, 0, 1, 'a'] + ['\xff'] * 31)
+        self.assertEqual(find_optimal_sequence('a' + '\xff' * 31 + 'A'), [Shift.BINARY, 0, 1, 'a'] + ['\xff'] * 31 + ['A'])
+        self.assertEqual(find_optimal_sequence('abc' + '\xff' * 32 + 'A'), [Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 0, 1] + ['\xff'] * 32 + [Latch.MIXED, Latch.UPPER, 'A'])
+        self.assertEqual(find_optimal_sequence('abc' + '\xff' * 31 + '@\\\\'), [Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 31] + ['\xff'] * 31 + [Latch.MIXED, '@', '\\', '\\'])
         self.assertEqual(find_optimal_sequence('!#$%&?'), [Latch.MIXED, Latch.PUNCT, '!', '#', '$', '%', '&', '?'])
         self.assertEqual(find_optimal_sequence('!#$%&?\xff'), [
             Latch.MIXED, Latch.PUNCT, '!', '#', '$', '%', '&', '?', Latch.UPPER, Shift.BINARY, 1, '\xff'])
