@@ -389,6 +389,28 @@ def optimal_sequence_to_bits(optimal_sequence):
             mode = ch.value
         if ch in Shift:
             shift = True
+        # handle FLG(n)
+        if ch == Misc.FLG:
+            if not sequence:
+                raise Exception('Expected FLG(n) value')
+            flg_n = sequence.pop(0)
+            if not isinstance(flg_n, numbers.Number) or not 0 <= flg_n <= 7:
+                raise Exception('FLG(n) value must be a number from 0 to 7')
+            if flg_n == 7:
+                raise Exception('FLG(7) is reserved and currently illegal')
+
+            out_bits += bin(flg_n)[2:].zfill(3)
+            if flg_n > 1:
+                # ECI
+                if not sequence:
+                    raise Exception('Expected FLG({}) to be followed by ECI code'.format(flg_n))
+                eci_code = sequence.pop(0)
+                if not isinstance(eci_code, numbers.Number) or not 0 <= eci_code < (10**flg_n):
+                    raise Exception('Expected FLG({}) ECI code to be a number from 0 to {}'.format(flg_n, (10**flg_n) - 1))
+                out_digits = str(eci_code).zfill(flg_n).encode()
+                for ch in out_digits:
+                    index = code_chars[Mode.DIGIT].index(ch)
+                    out_bits += bin(index)[2:].zfill(char_size[Mode.DIGIT])
         # handle binary mode
         if mode == Mode.BINARY:
             if not sequence:
