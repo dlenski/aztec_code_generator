@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 """
     aztec_code_generator
@@ -83,14 +83,14 @@ Shift = Enum('Shift', Mode.__members__)
 Misc = Enum('Misc', ('FLG', 'SIZE', 'RESUME'))
 
 code_chars = {
-    Mode.UPPER: [Shift.PUNCT] + list(' ABCDEFGHIJKLMNOPQRSTUVWXYZ') + [Latch.LOWER, Latch.MIXED, Latch.DIGIT, Shift.BINARY],
-    Mode.LOWER: [Shift.PUNCT] + list(' abcdefghijklmnopqrstuvwxyz') + [Shift.UPPER, Latch.MIXED, Latch.DIGIT, Shift.BINARY],
-    Mode.MIXED: [Shift.PUNCT] + list(' \x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x1b\x1c\x1d\x1e\x1f@\\^_`|~\x7f') + [Latch.LOWER, Latch.UPPER, Latch.PUNCT, Shift.BINARY],
-    Mode.PUNCT: [Misc.FLG, '\r', '\r\n', '. ', ', ', ': '] + list('!"#$%&\'()*+,-./:;<=>?[]{}') + [Latch.UPPER],
-    Mode.DIGIT: [Shift.PUNCT] + list(' 0123456789,.') + [Latch.UPPER, Shift.UPPER],
+    Mode.UPPER: [Shift.PUNCT] + list(b' ABCDEFGHIJKLMNOPQRSTUVWXYZ') + [Latch.LOWER, Latch.MIXED, Latch.DIGIT, Shift.BINARY],
+    Mode.LOWER: [Shift.PUNCT] + list(b' abcdefghijklmnopqrstuvwxyz') + [Shift.UPPER, Latch.MIXED, Latch.DIGIT, Shift.BINARY],
+    Mode.MIXED: [Shift.PUNCT] + list(b' \x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x1b\x1c\x1d\x1e\x1f@\\^_`|~\x7f') + [Latch.LOWER, Latch.UPPER, Latch.PUNCT, Shift.BINARY],
+    Mode.PUNCT: [Misc.FLG] + list(b'\r') + [b'\r\n', b'. ', b', ', b': '] + list(b'!"#$%&\'()*+,-./:;<=>?[]{}') + [Latch.UPPER],
+    Mode.DIGIT: [Shift.PUNCT] + list(b' 0123456789,.') + [Latch.UPPER, Shift.UPPER],
 }
 
-punct_2_chars = [pc for pc in code_chars[Mode.PUNCT] if isinstance(pc, str) and len(pc) == 2]
+punct_2_chars = [pc for pc in code_chars[Mode.PUNCT] if isinstance(pc, bytes) and len(pc) == 2]
 
 E = 99999  # some big number
 
@@ -194,18 +194,21 @@ def reed_solomon(wd, nd, nc, gf, pp):
                 wd[nd + j] ^= wd[nd + j + 1]
 
 
-def find_optimal_sequence(data):
+def find_optimal_sequence(data, encoding=None):
     """ Find optimal sequence, i.e. with minimum number of bits to encode data.
 
     TODO: add support of FLG(n) processing
 
-    :param data: data to encode
+    :param data: string or bytes to encode
+    :param encoding: encoding to use for string data
     :return: optimal sequence
     """
     back_to = {m: Mode.UPPER for m in Mode}
     cur_len = {m: 0 if m==Mode.UPPER else E for m in Mode}
     cur_seq = {m: [] for m in Mode}
     prev_c = None
+    if isinstance(data, str):
+        data = data.encode(encoding) if encoding else data.encode()
     for c in data:
         for x in Mode:
             for y in Mode:
@@ -294,15 +297,16 @@ def find_optimal_sequence(data):
                     next_len[y] = cur_len[y] + shift_len[y][x] + char_size[x]
                     next_seq[y] = cur_seq[y] + [Shift[x.name], c]
         # TODO: review this!!!
-        if prev_c and prev_c + c in punct_2_chars:
+        if prev_c and bytes((prev_c, c)) in punct_2_chars:
             for x in Mode:
                 # Will never StopIteration because we must have one S/L already since prev_c is PUNCT
                 last_mode = next(s.value for s in reversed(cur_seq[x]) if s in Latch or s in Shift)
                 if last_mode == Mode.PUNCT:
-                    if cur_seq[x][-1] + c in punct_2_chars:
+                    last_c = cur_seq[x][-1]
+                    if isinstance(last_c, int) and bytes((last_c, c)) in punct_2_chars:
                         if cur_len[x] < next_len[x]:
                             next_len[x] = cur_len[x]
-                            next_seq[x] = cur_seq[x][:-1] + [cur_seq[x][-1] + c]
+                            next_seq[x] = cur_seq[x][:-1] + [ bytes((last_c, c)) ]
         if len(next_seq[Mode.BINARY]) - 2 == 32:
             next_len[Mode.BINARY] += 11
         cur_len = next_len.copy()
@@ -368,7 +372,7 @@ def optimal_sequence_to_bits(optimal_sequence):
         # read one item from sequence
         ch = sequence.pop(0)
         if binary:
-            out_bits += bin(ord(ch))[2:].zfill(char_size.get(mode))
+            out_bits += bin(ch)[2:].zfill(char_size.get(mode))
             binary_index += 1
             # resume previous mode at the end of the binary sequence
             if binary_index >= binary_seq_len:
@@ -455,14 +459,15 @@ def get_config_from_table(size, compact):
         raise Exception('Failed to find config with size and compactness flag')
     return config
 
-def find_suitable_matrix_size(data):
+def find_suitable_matrix_size(data, encoding=None):
     """ Find suitable matrix size
     Raise an exception if suitable size is not found
 
-    :param data: data to encode
+    :param data: string or bytes to encode
+    :param encoding: encoding to use for string data
     :return: (size, compact) tuple
     """
-    optimal_sequence = find_optimal_sequence(data)
+    optimal_sequence = find_optimal_sequence(data, encoding)
     out_bits = optimal_sequence_to_bits(optimal_sequence)
     for (size, compact) in sorted(table.keys()):
         config = get_config_from_table(size, compact)
@@ -481,16 +486,18 @@ class AztecCode(object):
     Aztec code generator
     """
 
-    def __init__(self, data, size=None, compact=None):
+    def __init__(self, data, size=None, compact=None, encoding=None):
         """ Create Aztec code with given data.
         If size and compact parameters are None (by default), an
         optimal size and compactness calculated based on the data.
 
-        :param data: data to encode
+        :param data: string or bytes to encode
         :param size: size of matrix
         :param compact: compactness flag
+        :param encoding: encoding to use for string data
         """
         self.data = data
+        self.encoding = encoding
         if size is not None and compact is not None:
             if (size, compact) in table:
                 self.size, self.compact = size, compact
@@ -650,13 +657,13 @@ class AztecCode(object):
             self.matrix[center + y][center + x] = (bit == '1')
             index += 1
 
-    def __add_data(self, data):
+    def __add_data(self, data, encoding):
         """ Add data to encode to the matrix
 
         :param data: data to encode
         :return: number of data codewords
         """
-        optimal_sequence = find_optimal_sequence(data)
+        optimal_sequence = find_optimal_sequence(data, encoding)
         out_bits = optimal_sequence_to_bits(optimal_sequence)
         config = get_config_from_table(self.size, self.compact)
         layers_count = config.layers
@@ -769,7 +776,7 @@ class AztecCode(object):
         self.__add_finder_pattern()
         self.__add_orientation_marks()
         self.__add_reference_grid()
-        data_cw_count = self.__add_data(self.data)
+        data_cw_count = self.__add_data(self.data, self.encoding)
         self.__add_mode_info(data_cw_count)
 
 
