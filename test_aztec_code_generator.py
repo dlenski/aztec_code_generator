@@ -30,8 +30,8 @@ class Test(unittest.TestCase):
         reed_solomon(cw, 2, 5, 16, 19)
         self.assertEqual(cw, [0, 9, 12, 2, 3, 1, 9])
 
-    def test_find_optimal_sequence(self):
-        """ Test find_optimal_sequence function """
+    def test_find_optimal_sequence_ascii_strings(self):
+        """ Test find_optimal_sequence function for ASCII strings """
         self.assertEqual(find_optimal_sequence(''), b())
         self.assertEqual(find_optimal_sequence('ABC'), b('A', 'B', 'C'))
         self.assertEqual(find_optimal_sequence('abc'), b(Latch.LOWER, 'a', 'b', 'c'))
@@ -41,19 +41,6 @@ class Test(unittest.TestCase):
         self.assertEqual(find_optimal_sequence('Code 2D!'), b(
             'C', Latch.LOWER, 'o', 'd', 'e', Latch.DIGIT, ' ', '2', Shift.UPPER, 'D', Shift.PUNCT, '!'))
         self.assertEqual(find_optimal_sequence('!#$%&?'), b(Latch.MIXED, Latch.PUNCT, '!', '#', '$', '%', '&', '?'))
-
-        # The CHARACTER '\xff' is only represented by the BYTE 0xff in the iso-8859-1 encoding, NOT in utf-8
-        self.assertEqual(find_optimal_sequence('a' + '\xff' * 31 + 'A', encoding='iso-8859-1'), b(
-            Shift.BINARY, 0, 1, 'a') + [0xff] * 31 + b('A'))
-        self.assertEqual(find_optimal_sequence('abc' + '\xff' * 32 + 'A', encoding='iso-8859-1'), b(
-            Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 0, 1) + [0xff] * 32 + b(Latch.MIXED, Latch.UPPER, 'A'))
-        self.assertEqual(find_optimal_sequence('abc' + '\xff' * 31 + '@\\\\', encoding='iso-8859-1'), b(
-            Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 31) + [0xff] * 31 + b(Latch.MIXED, '@', '\\', '\\'))
-        self.assertEqual(find_optimal_sequence('!#$%&?\xff', encoding='iso-8859-1'), b(
-            Latch.MIXED, Latch.PUNCT, '!', '#', '$', '%', '&', '?', Latch.UPPER, Shift.BINARY, 1, '\xff'))
-        self.assertEqual(find_optimal_sequence('!#$%&\xff', 'iso-8859-1'), b(Shift.BINARY, 6, '!', '#', '$', '%', '&', '\xff'))
-        self.assertEqual(find_optimal_sequence('@\xff', 'iso-8859-1'), b(Shift.BINARY, 2, '@', '\xff'))
-        self.assertEqual(find_optimal_sequence('. @\xff', 'iso-8859-1'), b(Shift.PUNCT, '. ', Shift.BINARY, 2, '@', '\xff'))
 
         self.assertIn(find_optimal_sequence('. : '), (
             b(Shift.PUNCT, '. ', Shift.PUNCT, ': '),
@@ -79,6 +66,27 @@ class Test(unittest.TestCase):
             Shift.BINARY, 7, '~', 'F', 'x', 'l', 'b', '"', 'I', Latch.DIGIT, '4'))
         self.assertEqual(find_optimal_sequence('\\+=R?1'), b(
             Latch.MIXED, '\\', Latch.PUNCT, '+', '=', Latch.UPPER, 'R', Latch.DIGIT, Shift.PUNCT, '?', '1'))
+
+    def test_find_optimal_sequence_non_ASCII_strings(self):
+        """ Test find_optimal_sequence function for non-ASCII strings (currently only iso-8859-1) """
+
+        self.assertEqual(find_optimal_sequence('Français'), b(
+            'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 1, 0xe7, 'a', 'i', 's'))
+
+    def test_find_optimal_sequence_bytes(self):
+        """ Test find_optimal_sequence function for byte strings """
+
+        self.assertEqual(find_optimal_sequence(b'a' + b'\xff' * 31 + b'A'), b(
+            Shift.BINARY, 0, 1, 'a') + [0xff] * 31 + b('A'))
+        self.assertEqual(find_optimal_sequence(b'abc' + b'\xff' * 32 + b'A'), b(
+            Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 0, 1) + [0xff] * 32 + b(Latch.MIXED, Latch.UPPER, 'A'))
+        self.assertEqual(find_optimal_sequence(b'abc' + b'\xff' * 31 + b'@\\\\'), b(
+            Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 31) + [0xff] * 31 + b(Latch.MIXED, '@', '\\', '\\'))
+        self.assertEqual(find_optimal_sequence(b'!#$%&?\xff'), b(
+            Latch.MIXED, Latch.PUNCT, '!', '#', '$', '%', '&', '?', Latch.UPPER, Shift.BINARY, 1, '\xff'))
+        self.assertEqual(find_optimal_sequence(b'!#$%&\xff'), b(Shift.BINARY, 6, '!', '#', '$', '%', '&', '\xff'))
+        self.assertEqual(find_optimal_sequence(b'@\xff'), b(Shift.BINARY, 2, '@', '\xff'))
+        self.assertEqual(find_optimal_sequence(b'. @\xff'), b(Shift.PUNCT, '. ', Shift.BINARY, 2, '@', '\xff'))
 
         # Non-ASCII strings
         self.assertEqual(find_optimal_sequence('Français'), b(
