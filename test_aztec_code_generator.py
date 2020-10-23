@@ -4,7 +4,7 @@
 import unittest
 from aztec_code_generator import (
     reed_solomon, find_optimal_sequence, optimal_sequence_to_bits, get_data_codewords,
-    Mode, Latch, Shift,
+    Mode, Latch, Shift, Misc,
 )
 
 def b(*l):
@@ -96,6 +96,9 @@ class Test(unittest.TestCase):
         self.assertEqual(optimal_sequence_to_bits(b(Shift.BINARY, 1, '\xff')), '111110000111111111')
         self.assertEqual(optimal_sequence_to_bits(b(Shift.BINARY, 0, 1, '\xff')), '11111000000000000000111111111')
         self.assertEqual(optimal_sequence_to_bits(b('A')), '00010')
+        self.assertEqual(optimal_sequence_to_bits(b(Shift.PUNCT, Misc.FLG, 0, 'A')), '000000000000000010')
+        self.assertEqual(optimal_sequence_to_bits(b(Shift.PUNCT, Misc.FLG, 1, 3, 'A')), '0000000000001' + '0101' + '00010') # FLG(1) '3'
+        self.assertEqual(optimal_sequence_to_bits(b(Shift.PUNCT, Misc.FLG, 6, 3, 'A')), '0000000000110' + '0010'*5 + '0101' + '00010') # FLG(6) '000003'
 
     def test_get_data_codewords(self):
         """ Test get_data_codewords function """
