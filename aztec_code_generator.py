@@ -784,16 +784,18 @@ class AztecCode(object):
         self.__add_mode_info(data_cw_count)
 
 
-def main():
-    data = 'Aztec Code 2D :)'
+def main(argv):
+    if len(argv) not in (2, 3):
+        print("usage: {} STRING_TO_ENCODE [IMAGE_FILE]".format(argv[0]))
+        print("  Generate a 2D Aztec barcode and print it, or save to a file.")
+    data = argv[1]
     aztec_code = AztecCode(data)
-    aztec_code.print_out()
-    if ImageDraw is None:
-        print('PIL is not installed, cannot generate PNG')
-    else:
-        aztec_code.save('aztec_code.png', 4)
     print('Aztec Code info: {0}x{0} {1}'.format(aztec_code.size, '(compact)' if aztec_code.compact else ''))
+    if len(sys.argv) == 3:
+        aztec_code.save(argv[2], module_size=5)
+    else:
+        aztec_code.print_out()
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
