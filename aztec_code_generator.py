@@ -520,7 +520,7 @@ def find_suitable_matrix_size(data, ec_percent=23, encoding=None):
     """
     optimal_sequence = find_optimal_sequence(data, encoding)
     out_bits = optimal_sequence_to_bits(optimal_sequence)
-    for (size, compact) in configs.keys():
+    for (size, compact) in sorted(configs.keys()):
         config = get_config_from_table(size, compact)
         bits = config.bits
         # calculate minimum required number of bits
