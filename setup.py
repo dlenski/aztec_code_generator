@@ -18,6 +18,10 @@ setup(name="aztec_code_generator",
       extras_require={
           "Image": "pillow>=3.0",
       },
+      tests_require=[
+          "pillow>=3.0",
+          "zxing",
+      ],
       license='MIT',
       url="https://github.com/dlenski/aztec_code_generator",
       py_modules=["aztec_code_generator"],

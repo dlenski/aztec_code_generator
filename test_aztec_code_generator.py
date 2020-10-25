@@ -5,7 +5,15 @@ import unittest
 from aztec_code_generator import (
     reed_solomon, find_optimal_sequence, optimal_sequence_to_bits, get_data_codewords,
     Mode, Latch, Shift, Misc,
+    AztecCode,
 )
+
+from tempfile import NamedTemporaryFile
+
+try:
+    import zxing
+except ImportError:
+    zxing = None
 
 def b(*l):
     return [(ord(c) if len(c)==1 else c.encode()) if isinstance(c, str) else c for c in l]
@@ -110,6 +118,23 @@ class Test(unittest.TestCase):
         self.assertEqual(get_data_codewords('000000', 6), [0b000001, 0b011111])
         self.assertEqual(get_data_codewords('111111', 6), [0b111110, 0b111110])
         self.assertEqual(get_data_codewords('111101111101', 6), [0b111101, 0b111101])
+
+    def _encode_and_decode(self, reader, data, *args, **kwargs):
+        with NamedTemporaryFile(suffix='.png') as f:
+            code = AztecCode(data, *args, **kwargs)
+            code.save(f, module_size=5)
+            result = reader.decode(f.name, **(dict(encoding=None) if isinstance(data, bytes) else {}))
+            assert result is not None
+            self.assertEqual(data, result.raw)
+
+    @unittest.skipUnless(zxing, reason='Python module zxing cannot be imported; cannot test decoding.')
+    def test_barcode_readability(self):
+        r = zxing.BarCodeReader()
+        # FIXME: ZXing command-line runner tries to coerce everything to UTF-8, so we can only reliably
+        # encode and decode characters in the intersection of utf-8 and iso8559-1.
+        self._encode_and_decode(r, 'Wikipedia, the free encyclopedia', ec_percent=0)
+        self._encode_and_decode(r, 'Wow. Much error. Very correction. Amaze', ec_percent=95)
+        self._encode_and_decode(r, '¿Cuánto cuesta?')
 
 
 if __name__ == '__main__':
