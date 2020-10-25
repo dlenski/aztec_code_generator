@@ -90,7 +90,7 @@ code_chars = {
     Mode.DIGIT: [Shift.PUNCT] + list(b' 0123456789,.') + [Latch.UPPER, Shift.UPPER],
 }
 
-punct_2_chars = [pc for pc in code_chars[Mode.PUNCT] if isinstance(pc, bytes) and len(pc) == 2]
+punct_2_chars = [pc for pc in code_chars[Mode.PUNCT] if isinstance(pc, bytes)]
 
 E = 99999  # some big number
 
@@ -315,7 +315,7 @@ def find_optimal_sequence(data):
         prev_c = c
     # sort in ascending order and get shortest sequence
     result_seq = []
-    sorted_cur_len = sorted(cur_len, key=cur_len.get)
+    sorted_cur_len = sorted(cur_len, key=cur_len.__getitem__)
     if sorted_cur_len:
         min_length = sorted_cur_len[0]
         result_seq = cur_seq[min_length]
@@ -366,8 +366,8 @@ def optimal_sequence_to_bits(optimal_sequence):
     while sequence:
         # read one item from sequence
         ch = sequence.pop(0)
-        index = code_chars.get(mode).index(ch)
-        out_bits += bin(index)[2:].zfill(char_size.get(mode))
+        index = code_chars[mode].index(ch)
+        out_bits += bin(index)[2:].zfill(char_size[mode])
         # resume previous mode for shift
         if shift:
             mode = prev_mode
@@ -406,15 +406,14 @@ def optimal_sequence_to_bits(optimal_sequence):
             if not isinstance(seq_len, numbers.Number):
                 raise Exception('Binary sequence length must be a number')
             out_bits += bin(seq_len)[2:].zfill(5)
-            binary_seq_len = seq_len
             # if length is zero - 11 additional length bits are used for length
-            if not binary_seq_len:
+            if not seq_len:
                 seq_len = sequence.pop(0)
                 if not isinstance(seq_len, numbers.Number):
                     raise Exception('Binary sequence length must be a number')
                 out_bits += bin(seq_len)[2:].zfill(11)
-                binary_seq_len = seq_len + 31
-            for binary_index in range(binary_seq_len):
+                seq_len += 31
+            for binary_index in range(seq_len):
                 ch = sequence.pop(0)
                 out_bits += bin(ch)[2:].zfill(char_size[Mode.BINARY])
         # handle other shift
@@ -463,10 +462,10 @@ def get_config_from_table(size, compact):
     :param compact: compactness flag
     :return: dict with config
     """
-    config = table.get((size, compact))
-    if not config:
-        raise Exception('Failed to find config with size and compactness flag')
-    return config
+    try:
+        return table[(size, compact)]
+    except KeyError:
+        raise NotImplementedError('Failed to find config with size and compactness flag')
 
 def find_suitable_matrix_size(data, ec_percent=23):
     """ Find suitable matrix size
