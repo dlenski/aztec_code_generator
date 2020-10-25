@@ -228,7 +228,9 @@ def find_optimal_sequence(data):
                     elif cur_seq[x]:
                         # if changing from punct or digit mode - use U/L as intermediate mode
                         # TODO: update for digit
-                        if x in (Mode.PUNCT, Mode.DIGIT) and y != Mode.UPPER:
+                        if x == Mode.DIGIT and y == Mode.PUNCT:
+                            cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch.MIXED, Latch.PUNCT]
+                        elif x in (Mode.PUNCT, Mode.DIGIT) and y != Mode.UPPER:
                             cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch[y.name]]
                         elif x in (Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
                             cur_seq[y] += [Latch.MIXED, Latch[y.name]]

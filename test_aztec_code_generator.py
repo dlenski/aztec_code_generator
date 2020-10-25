@@ -66,6 +66,8 @@ class Test(unittest.TestCase):
             Shift.BINARY, 7, '~', 'F', 'x', 'l', 'b', '"', 'I', Latch.DIGIT, '4'))
         self.assertEqual(find_optimal_sequence('\\+=R?1'), b(
             Latch.MIXED, '\\', Latch.PUNCT, '+', '=', Latch.UPPER, 'R', Latch.DIGIT, Shift.PUNCT, '?', '1'))
+        self.assertEqual(find_optimal_sequence('0123456789:;<=>'), b(
+            Latch.DIGIT, '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', Latch.UPPER, Latch.MIXED, Latch.PUNCT, ':', ';', '<', '=', '>'))
 
     def test_find_optimal_sequence_non_ASCII_strings(self):
         """ Test find_optimal_sequence function for non-ASCII strings (currently only iso-8859-1) """
