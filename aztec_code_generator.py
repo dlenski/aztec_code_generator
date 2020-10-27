@@ -30,7 +30,7 @@ except ImportError:
 
 Config = namedtuple('Config', ('layers', 'codewords', 'cw_bits', 'bits', 'digits', 'text', 'bytes'))
 
-table = {
+configs = {
     (15, True): Config(layers=1, codewords=17, cw_bits=6, bits=102, digits=13, text=12, bytes=6),
     (19, False): Config(layers=1, codewords=21, cw_bits=6, bits=126, digits=18, text=15, bytes=8),
     (19, True): Config(layers=2, codewords=40, cw_bits=6, bits=240, digits=40, text=33, bytes=19),
@@ -456,14 +456,14 @@ def get_data_codewords(bits, codeword_size):
 
 
 def get_config_from_table(size, compact):
-    """ Get config from table with given size and compactness flag
+    """ Get config with given size and compactness flag
 
     :param size: matrix size
     :param compact: compactness flag
     :return: dict with config
     """
     try:
-        return table[(size, compact)]
+        return configs[(size, compact)]
     except KeyError:
         raise NotImplementedError('Failed to find config with size and compactness flag')
 
@@ -477,7 +477,7 @@ def find_suitable_matrix_size(data, ec_percent=23):
     """
     optimal_sequence = find_optimal_sequence(data)
     out_bits = optimal_sequence_to_bits(optimal_sequence)
-    for (size, compact) in sorted(table.keys()):
+    for (size, compact) in configs.keys():
         config = get_config_from_table(size, compact)
         bits = config.bits
         # calculate minimum required number of bits
@@ -505,7 +505,7 @@ class AztecCode(object):
         self.sequence = None
         self.ec_percent = ec_percent
         if size is not None and compact is not None:
-            if (size, compact) in table:
+            if (size, compact) in configs:
                 self.size, self.compact = size, compact
             else:
                 raise Exception(
