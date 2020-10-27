@@ -88,10 +88,6 @@ class Test(unittest.TestCase):
         self.assertEqual(find_optimal_sequence(b'@\xff'), b(Shift.BINARY, 2, '@', '\xff'))
         self.assertEqual(find_optimal_sequence(b'. @\xff'), b(Shift.PUNCT, '. ', Shift.BINARY, 2, '@', '\xff'))
 
-        # Non-ASCII strings
-        self.assertEqual(find_optimal_sequence('Français'), b(
-            'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 1, 0xe7, 'a', 'i', 's'))
-
     def test_optimal_sequence_to_bits(self):
         """ Test optimal_sequence_to_bits function """
         self.assertEqual(optimal_sequence_to_bits(b()), '')
