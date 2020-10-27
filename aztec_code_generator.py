@@ -14,6 +14,7 @@ import math
 import numbers
 import sys
 import array
+import codecs
 from collections import namedtuple
 from enum import Enum
 
@@ -67,6 +68,34 @@ configs = {
     (143, False): Config(layers=30, codewords=1480, cw_bits=12, bits=17760),
     (147, False): Config(layers=31, codewords=1570, cw_bits=12, bits=18840),
     (151, False): Config(layers=32, codewords=1664, cw_bits=12, bits=19968),
+}
+
+encoding_to_eci = {
+    'cp437': 0, # also 2
+    'iso8859-1': 1, # (also 3) default interpretation, readers should assume if no ECI mark
+    'iso8859-2': 4,
+    'iso8859-3': 5,
+    'iso8859-4': 6,
+    'iso8859-5': 7,
+    'iso8859-6': 8,
+    'iso8859-7': 9,
+    'iso8859-8': 10,
+    'iso8859-9': 11,
+    'iso8859-13': 15,
+    'iso8859-14': 16,
+    'iso8859-15': 17,
+    'iso8859-16': 18,
+    'shift_jis': 20,
+    'cp1250': 21,
+    'cp1251': 22,
+    'cp1252': 23,
+    'cp1256': 24,
+    'utf-16-be': 25, # no BOM
+    'utf-8': 26,
+    'ascii': 27, # also 170
+    'big5': 28,
+    'gb18030': 29,
+    'euc_kr': 30,
 }
 
 polynomials = {
@@ -194,20 +223,30 @@ def reed_solomon(wd, nd, nc, gf, pp):
                 wd[nd + j] ^= wd[nd + j + 1]
 
 
-def find_optimal_sequence(data):
+def find_optimal_sequence(data, encoding=None):
     """ Find optimal sequence, i.e. with minimum number of bits to encode data.
 
     TODO: add support of FLG(n) processing
 
     :param data: string or bytes to encode
+    :param encoding: see :py:class:`AztecCode`
     :return: optimal sequence
     """
+
+    # standardize encoding name, ensure that it's valid for ECI, and encode string to bytes
+    if encoding:
+        encoding = codecs.lookup(encoding).name
+        eci = encoding_to_eci[encoding]
+    else:
+        encoding = 'iso8859-1'
+        eci = None
+    if isinstance(data, str):
+        data = data.encode(encoding)
+
     back_to = {m: Mode.UPPER for m in Mode}
     cur_len = {m: 0 if m==Mode.UPPER else E for m in Mode}
     cur_seq = {m: [] for m in Mode}
     prev_c = None
-    if isinstance(data, str):
-        data = data.encode('iso-8859-1')
     for c in data:
         for x in Mode:
             for y in Mode:
@@ -350,6 +389,9 @@ def find_optimal_sequence(data):
         if c == Shift.BINARY:
             is_binary_length = True
 
+    if eci is not None:
+        updated_result_seq = [ Shift.PUNCT, Misc.FLG, len(str(eci)), eci ] + updated_result_seq
+
     return updated_result_seq
 
 
@@ -467,15 +509,16 @@ def get_config_from_table(size, compact):
     except KeyError:
         raise NotImplementedError('Failed to find config with size and compactness flag')
 
-def find_suitable_matrix_size(data, ec_percent=23):
+def find_suitable_matrix_size(data, ec_percent=23, encoding=None):
     """ Find suitable matrix size
     Raise an exception if suitable size is not found
 
     :param data: string or bytes to encode
     :param ec_percent: percentage of symbol capacity for error correction (default 23%)
+    :param encoding: see :py:class:`AztecCode`
     :return: (size, compact) tuple
     """
-    optimal_sequence = find_optimal_sequence(data)
+    optimal_sequence = find_optimal_sequence(data, encoding)
     out_bits = optimal_sequence_to_bits(optimal_sequence)
     for (size, compact) in configs.keys():
         config = get_config_from_table(size, compact)
@@ -491,7 +534,7 @@ class AztecCode(object):
     Aztec code generator
     """
 
-    def __init__(self, data, size=None, compact=None, ec_percent=23):
+    def __init__(self, data, size=None, compact=None, ec_percent=23, encoding=None):
         """ Create Aztec code with given data.
         If size and compact parameters are None (by default), an
         optimal size and compactness calculated based on the data.
@@ -500,8 +543,12 @@ class AztecCode(object):
         :param size: size of matrix
         :param compact: compactness flag
         :param ec_percent: percentage of symbol capacity for error correction (default 23%)
+        :param encoding:
+          If set, sequence will include an initial ECI mark corresponding to the specified encoding (see :py:mod:`codecs`)
+          If unset, no ECI mark will be included and string must be encodable as 'iso8859-1'
         """
         self.data = data
+        self.encoding = encoding
         self.sequence = None
         self.ec_percent = ec_percent
         if size is not None and compact is not None:
@@ -511,7 +558,7 @@ class AztecCode(object):
                 raise Exception(
                     'Given size and compact values (%s, %s) are not found in sizes table!' % (size, compact))
         else:
-            self.size, self.compact, self.sequence = find_suitable_matrix_size(self.data, ec_percent)
+            self.size, self.compact, self.sequence = find_suitable_matrix_size(self.data, ec_percent, encoding)
         self.__create_matrix()
         self.__encode_data()
 
@@ -679,14 +726,15 @@ class AztecCode(object):
             self.matrix[center + y][center + x] = (bit == '1')
             index += 1
 
-    def __add_data(self, data):
+    def __add_data(self, data, encoding):
         """ Add data to encode to the matrix
 
         :param data: data to encode
+        :param encoding: see :py:class:`AztecCode`
         :return: number of data codewords
         """
         if not self.sequence:
-            self.sequence = find_optimal_sequence(data)
+            self.sequence = find_optimal_sequence(data, encoding)
         out_bits = optimal_sequence_to_bits(self.sequence)
         config = get_config_from_table(self.size, self.compact)
         layers_count = config.layers
@@ -796,7 +844,7 @@ class AztecCode(object):
         self.__add_finder_pattern()
         self.__add_orientation_marks()
         self.__add_reference_grid()
-        data_cw_count = self.__add_data(self.data)
+        data_cw_count = self.__add_data(self.data, self.encoding)
         self.__add_mode_info(data_cw_count)
 
 

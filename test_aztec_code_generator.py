@@ -3,11 +3,12 @@
 
 import unittest
 from aztec_code_generator import (
-    reed_solomon, find_optimal_sequence, optimal_sequence_to_bits, get_data_codewords,
+    reed_solomon, find_optimal_sequence, optimal_sequence_to_bits, get_data_codewords, encoding_to_eci,
     Mode, Latch, Shift, Misc,
     AztecCode,
 )
 
+import codecs
 from tempfile import NamedTemporaryFile
 
 try:
@@ -77,11 +78,29 @@ class Test(unittest.TestCase):
         self.assertEqual(find_optimal_sequence('0123456789:;<=>'), b(
             Latch.DIGIT, '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', Latch.UPPER, Latch.MIXED, Latch.PUNCT, ':', ';', '<', '=', '>'))
 
+    def test_encodings_canonical(self):
+        for encoding in encoding_to_eci:
+            self.assertEqual(encoding, codecs.lookup(encoding).name)
+
+    def _optimal_eci_sequence(self, charset):
+        eci = encoding_to_eci[charset]
+        ecis = str(eci)
+        return [ Shift.PUNCT, Misc.FLG, len(ecis), eci ]
+
     def test_find_optimal_sequence_non_ASCII_strings(self):
         """ Test find_optimal_sequence function for non-ASCII strings (currently only iso-8859-1) """
 
+        # Implicit iso8559-1 without ECI:
         self.assertEqual(find_optimal_sequence('Français'), b(
             'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 1, 0xe7, 'a', 'i', 's'))
+
+        # ECI: explicit iso8859-1, cp1252 (Windows-1252), and utf-8
+        self.assertEqual(find_optimal_sequence('Français', 'iso8859-1'), self._optimal_eci_sequence('iso8859-1') + b(
+            'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 1, 0xe7, 'a', 'i', 's'))
+        self.assertEqual(find_optimal_sequence('€800', 'cp1252'), self._optimal_eci_sequence('cp1252') + b(
+            Shift.BINARY, 1, 0x80, Latch.DIGIT, '8', '0', '0'))
+        self.assertEqual(find_optimal_sequence('Français', 'utf-8'), self._optimal_eci_sequence('utf-8') + b(
+            'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 2, 0xc3, 0xa7, 'a', 'i', 's'))
 
     def test_find_optimal_sequence_bytes(self):
         """ Test find_optimal_sequence function for byte strings """
@@ -135,6 +154,10 @@ class Test(unittest.TestCase):
         self._encode_and_decode(r, 'Wikipedia, the free encyclopedia', ec_percent=0)
         self._encode_and_decode(r, 'Wow. Much error. Very correction. Amaze', ec_percent=95)
         self._encode_and_decode(r, '¿Cuánto cuesta?')
+
+        # FIXME: ZXing doesn't correctly decode ECI or FNC1 in Aztec (https://github.com/zxing/zxing/issues/1327),
+        # so we don't currently have a way to test readability of barcodes containing characters not in iso8559-1.
+        # self._encode_and_decode(r, 'The price is €4', encoding='utf-8')
 
 
 if __name__ == '__main__':
