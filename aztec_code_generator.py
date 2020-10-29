@@ -435,7 +435,7 @@ def optimal_sequence_to_bits(optimal_sequence):
                 eci_code = sequence.pop(0)
                 if not isinstance(eci_code, numbers.Number) or not 0 <= eci_code < (10**flg_n):
                     raise Exception('Expected FLG({}) ECI code to be a number from 0 to {}'.format(flg_n, (10**flg_n) - 1))
-                out_digits = b'%.*d' % (flg_n, eci_code)
+                out_digits = str(eci_code).zfill(flg_n).encode()
                 for ch in out_digits:
                     index = code_chars[Mode.DIGIT].index(ch)
                     out_bits += bin(index)[2:].zfill(char_size[Mode.DIGIT])
