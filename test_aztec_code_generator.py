@@ -155,9 +155,11 @@ class Test(unittest.TestCase):
         self._encode_and_decode(r, 'Wow. Much error. Very correction. Amaze', ec_percent=95)
         self._encode_and_decode(r, '¿Cuánto cuesta?')
 
-        # FIXME: ZXing doesn't correctly decode ECI or FNC1 in Aztec (https://github.com/zxing/zxing/issues/1327),
+        # FIXME: Released versions of ZXing don't correctly decode ECI or FNC1 in Aztec (https://github.com/zxing/zxing/issues/1327),
         # so we don't currently have a way to test readability of barcodes containing characters not in iso8559-1.
-        # self._encode_and_decode(r, 'The price is €4', encoding='utf-8')
+        #
+        # Uncomment once https://github.com/zxing/zxing/pull/1328 is merged:
+        #self._encode_and_decode(r, 'The price is €4', encoding='utf-8')
 
 
 if __name__ == '__main__':
