@@ -415,7 +415,7 @@ def optimal_sequence_to_bits(optimal_sequence):
             mode = prev_mode
             shift = False
         # get mode from sequence character
-        if ch in Latch:
+        if isinstance(ch, Latch):
             mode = ch.value
         # handle FLG(n)
         elif ch == Misc.FLG:
@@ -459,7 +459,7 @@ def optimal_sequence_to_bits(optimal_sequence):
                 ch = sequence.pop(0)
                 out_bits += bin(ch)[2:].zfill(char_size[Mode.BINARY])
         # handle other shift
-        elif ch in Shift:
+        elif isinstance(ch, Shift):
             mode, prev_mode = ch.value, mode
             shift = True
     return out_bits
