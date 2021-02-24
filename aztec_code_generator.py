@@ -147,24 +147,12 @@ latch_len = {
 }
 
 shift_len = {
-    Mode.UPPER: {
-        Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: 5, Mode.DIGIT: E, Mode.BINARY: E
-    },
-    Mode.LOWER: {
-        Mode.UPPER: 5, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: 5, Mode.DIGIT: E, Mode.BINARY: E
-    },
-    Mode.MIXED: {
-        Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: 5, Mode.DIGIT: E, Mode.BINARY: E
-    },
-    Mode.PUNCT: {
-        Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: E, Mode.DIGIT: E, Mode.BINARY: E
-    },
-    Mode.DIGIT: {
-        Mode.UPPER: 4, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: 4, Mode.DIGIT: E, Mode.BINARY: E
-    },
-    Mode.BINARY: {
-        Mode.UPPER: E, Mode.LOWER: E, Mode.MIXED: E, Mode.PUNCT: E, Mode.DIGIT: E, Mode.BINARY: E
-    },
+    (Mode.UPPER, Mode.PUNCT): 5,
+    (Mode.LOWER, Mode.UPPER): 5,
+    (Mode.LOWER, Mode.PUNCT): 5,
+    (Mode.MIXED, Mode.PUNCT): 5,
+    (Mode.DIGIT, Mode.UPPER): 4,
+    (Mode.DIGIT, Mode.PUNCT): 4,
 }
 
 char_size = {
@@ -333,10 +321,8 @@ def find_optimal_sequence(data, encoding=None):
                 next_len[x] = cur_len[x] + char_size[x]
                 next_seq[x] = cur_seq[x] + [c]
             for y in Mode:
-                if y == x or y == Mode.BINARY:
-                    continue
-                if cur_len[y] + shift_len[y][x] + char_size[x] < next_len[y]:
-                    next_len[y] = cur_len[y] + shift_len[y][x] + char_size[x]
+                if (y, x) in shift_len and cur_len[y] + shift_len[(y, x)] + char_size[x] < next_len[y]:
+                    next_len[y] = cur_len[y] + shift_len[y, x] + char_size[x]
                     next_seq[y] = cur_seq[y] + [Shift[x.name], c]
         # TODO: review this!!!
         if prev_c and bytes((prev_c, c)) in punct_2_chars:
