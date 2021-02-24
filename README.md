@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/aztec_code_generator.svg)](https://pypi.python.org/pypi/aztec_code_generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://api.travis-ci.org/dlenski/aztec_code_generator.png)](https://travis-ci.org/dlenski/aztec_code_generator)
+[![Build Status](https://github.com/dlenski/aztec_code_generator/workflows/test_and_release/badge.svg)](https://github.com/dlenski/aztec_code_generator/actions?query=workflow%3Atest_and_release)
 
 This is a pure-Python library to generate [Aztec Code](https://en.wikipedia.org/wiki/Aztec_code) 2D barcodes.
 

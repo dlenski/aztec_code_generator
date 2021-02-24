@@ -22,12 +22,7 @@ setup(name="aztec_code_generator",
               "pillow>=8.0; python_version >= '3.6'",
           ]
       },
-      tests_require=[
-          "pillow>=3.0,<6.0; python_version < '3.5'",
-          "pillow>=3.0,<8.0; python_version >= '3.5' and python_version < '3.6'",
-          "pillow>=8.0; python_version >= '3.6'",
-          "zxing",
-      ],
+      tests_require=open('requirements-test.txt').readlines(),
       license='MIT',
       url="https://github.com/dlenski/aztec_code_generator",
       py_modules=["aztec_code_generator"],
