@@ -9,11 +9,13 @@ if sys.version_info < (3,4):
     sys.exit("Python 3.4+ is required; you are using %s" % sys.version)
 
 setup(name="aztec_code_generator",
-      version="0.6",
+      version="0.9",
       description='Aztec Code generator in Python',
       long_description=open('description.rst').read(),
       author='Dmitry Alimov',
       author_email="dvalimov@gmail.com",
+      maintainer='Daniel Lenski',
+      maintainer_email='dlenski@gmail.com',
       install_requires=open('requirements.txt').readlines(),
       extras_require={
           "Image": [
