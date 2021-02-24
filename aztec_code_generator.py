@@ -340,7 +340,7 @@ def find_optimal_sequence(data, encoding=None):
         if prev_c and bytes((prev_c, c)) in punct_2_chars:
             for x in Mode:
                 # Will never StopIteration because we must have one S/L already since prev_c is PUNCT
-                last_mode = next(s.value for s in reversed(cur_seq[x]) if s in Latch or s in Shift)
+                last_mode = next(s.value for s in reversed(cur_seq[x]) if isinstance(s, Latch) or isinstance(s, Shift))
                 if last_mode == Mode.PUNCT:
                     last_c = cur_seq[x][-1]
                     if isinstance(last_c, int) and bytes((last_c, c)) in punct_2_chars:
