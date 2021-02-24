@@ -130,7 +130,7 @@ latch_len = {
         Mode.UPPER: 0, Mode.LOWER: 5, Mode.MIXED: 5, Mode.PUNCT: 10, Mode.DIGIT: 5, Mode.BINARY: 10
     },
     Mode.LOWER: {
-        Mode.UPPER: 10, Mode.LOWER: 0, Mode.MIXED: 5, Mode.PUNCT: 10, Mode.DIGIT: 5, Mode.BINARY: 10
+        Mode.UPPER: 9, Mode.LOWER: 0, Mode.MIXED: 5, Mode.PUNCT: 10, Mode.DIGIT: 5, Mode.BINARY: 10
     },
     Mode.MIXED: {
         Mode.UPPER: 5, Mode.LOWER: 5, Mode.MIXED: 0, Mode.PUNCT: 5, Mode.DIGIT: 10, Mode.BINARY: 10
@@ -261,6 +261,8 @@ def find_optimal_sequence(data, encoding=None):
                             cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch.MIXED, Latch.PUNCT]
                         elif x in (Mode.PUNCT, Mode.DIGIT) and y != Mode.UPPER:
                             cur_seq[y] += [Misc.RESUME, Latch.UPPER, Latch[y.name]]
+                        elif x == Mode.LOWER and y == Mode.UPPER:
+                            cur_seq[y] += [Latch.DIGIT, Latch.UPPER]
                         elif x in (Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
                             cur_seq[y] += [Latch.MIXED, Latch[y.name]]
                         elif x == Mode.MIXED and y != Mode.UPPER:
@@ -279,7 +281,7 @@ def find_optimal_sequence(data, encoding=None):
                                 cur_seq[y] += [Misc.RESUME]
                             elif y == Mode.UPPER:
                                 if back_to[x] == Mode.LOWER:
-                                    cur_seq[y] += [Misc.RESUME, Latch.MIXED, Latch.UPPER]
+                                    cur_seq[y] += [Misc.RESUME, Latch.DIGIT, Latch.UPPER]
                                 if back_to[x] == Mode.MIXED:
                                     cur_seq[y] += [Misc.RESUME, Latch.UPPER]
                             elif y == Mode.LOWER:
@@ -303,6 +305,8 @@ def find_optimal_sequence(data, encoding=None):
                         # TODO: update for digit
                         if x in (Mode.PUNCT, Mode.DIGIT):
                             cur_seq[y] = [Latch.UPPER, Latch[y.name]]
+                        elif x == Mode.LOWER and y == Mode.UPPER:
+                            cur_seq[y] = [Latch.DIGIT, Latch.UPPER]
                         elif x in (Mode.BINARY, Mode.UPPER, Mode.LOWER) and y == Mode.PUNCT:
                             cur_seq[y] = [Latch.MIXED, Latch[y.name]]
                         else:

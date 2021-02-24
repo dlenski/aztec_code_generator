@@ -66,7 +66,9 @@ class Test(unittest.TestCase):
         self.assertEqual(find_optimal_sequence('ABCabc1a2b3e'), b(
             'A', 'B', 'C', Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 5, '1', 'a', '2', 'b', '3', 'e'))
         self.assertEqual(find_optimal_sequence('ABCabc1a2b3eBC'), b(
-            'A', 'B', 'C', Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 6, '1', 'a', '2', 'b', '3', 'e', Latch.MIXED, Latch.UPPER, 'B', 'C'))
+            'A', 'B', 'C', Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 6, '1', 'a', '2', 'b', '3', 'e', Latch.DIGIT, Latch.UPPER, 'B', 'C'))
+        self.assertEqual(find_optimal_sequence('abcABC'), b(
+            Latch.LOWER, 'a', 'b', 'c', Latch.DIGIT, Latch.UPPER, 'A', 'B', 'C'))
         self.assertEqual(find_optimal_sequence('0a|5Tf.l'), b(
             Shift.BINARY, 5, '0', 'a', '|', '5', 'T', Latch.LOWER, 'f', Shift.PUNCT, '.', 'l'))
         self.assertEqual(find_optimal_sequence('*V1\x0c {Pa'), b(
@@ -108,7 +110,7 @@ class Test(unittest.TestCase):
         self.assertEqual(find_optimal_sequence(b'a' + b'\xff' * 31 + b'A'), b(
             Shift.BINARY, 0, 1, 'a') + [0xff] * 31 + b('A'))
         self.assertEqual(find_optimal_sequence(b'abc' + b'\xff' * 32 + b'A'), b(
-            Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 0, 1) + [0xff] * 32 + b(Latch.MIXED, Latch.UPPER, 'A'))
+            Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 0, 1) + [0xff] * 32 + b(Latch.DIGIT, Latch.UPPER, 'A'))
         self.assertEqual(find_optimal_sequence(b'abc' + b'\xff' * 31 + b'@\\\\'), b(
             Latch.LOWER, 'a', 'b', 'c', Shift.BINARY, 31) + [0xff] * 31 + b(Latch.MIXED, '@', '\\', '\\'))
         self.assertEqual(find_optimal_sequence(b'!#$%&?\xff'), b(
@@ -124,7 +126,6 @@ class Test(unittest.TestCase):
         self.assertEqual(optimal_sequence_to_bits(b('A')), '00010')
         self.assertEqual(optimal_sequence_to_bits(b(Shift.BINARY, 1, '\xff')), '111110000111111111')
         self.assertEqual(optimal_sequence_to_bits(b(Shift.BINARY, 0, 1) + [0xff] * 32), '111110000000000000001' + '11111111'*32)
-        self.assertEqual(optimal_sequence_to_bits(b('A')), '00010')
         self.assertEqual(optimal_sequence_to_bits(b(Shift.PUNCT, Misc.FLG, 0, 'A')), '000000000000000010')
         self.assertEqual(optimal_sequence_to_bits(b(Shift.PUNCT, Misc.FLG, 1, 3, 'A')), '0000000000001' + '0101' + '00010') # FLG(1) '3'
         self.assertEqual(optimal_sequence_to_bits(b(Shift.PUNCT, Misc.FLG, 6, 3, 'A')), '0000000000110' + '0010'*5 + '0101' + '00010') # FLG(6) '000003'
