@@ -22,6 +22,11 @@ This is a pure-Python library to generate [Aztec Code](https://en.wikipedia.org/
   - add `print_fancy` for UTF-8 output (inspired by `qrencode -t ansiutf8`)
   - bugfix for `DIGIT`→`PUNCT` transition (and add missed test case)
   - allow customization of error correction percentage level
+- `v0.7`:
+  - support standard-compliant encoding of strings in character sets other than [ISO-8859-1](https://en.wikipedia.org/wiki/ISO-8859-1)
+    via [ECI indications](https://en.wikipedia.org/wiki/Extended_Channel_Interpretation)
+- `v0.8`-`v0.9`:
+  - replace Travis-CI with Github Actions for CI
 
 
 ## Installation
@@ -73,22 +78,22 @@ output as plain ASCII text, using `#` and ` ` characters:
 
 ```
 ##  # ## ####
- #   ## #####  ### 
+ #   ## #####  ###
  #  ##  # #   # ###
-## #  #    ## ##   
-    ## # #    # #  
+## #  #    ## ##
+    ## # #    # #
 ## ############ # #
  ### #       ###  #
 ##   # ##### # ## #
- #   # #   # ##    
- # # # # # # ###   
-    ## #   # ## ## 
-#### # ##### ## #  
-  # ##       ## ## 
- ##  ########### # 
+ #   # #   # ##
+ # # # # # # ###
+    ## #   # ## ##
+#### # ##### ## #
+  # ##       ## ##
+ ##  ########### #
   ##    # ##   ## #
      ## # ### #  ##
-      ############ 
+      ############
 ##   #     # ##   #
 ##  #    ## ###   #
 ```
