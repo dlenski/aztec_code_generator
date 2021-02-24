@@ -106,6 +106,8 @@ polynomials = {
     12: 4201,
 }
 
+Side = Enum('Side', ('left', 'right', 'bottom', 'top'))
+
 Mode = Enum('Mode', ('UPPER', 'LOWER', 'MIXED', 'PUNCT', 'DIGIT', 'BINARY'))
 Latch = Enum('Latch', Mode.__members__)
 Shift = Enum('Shift', Mode.__members__)
@@ -757,7 +759,7 @@ class AztecCode(object):
         ring_radius = 5 if self.compact else 7
 
         num = 2
-        side = 'top'
+        side = Side.top
         layer_index = 0
         pos_x = center - ring_radius
         pos_y = center - ring_radius - 1
@@ -768,7 +770,7 @@ class AztecCode(object):
             bits_pair = [(bit == '1') for bit in full_bits[i:i + 2]]
             if layer_index >= layers_count:
                 raise Exception('Maximum layer count for current size is exceeded!')
-            if side == 'top':
+            if side == Side.top:
                 # move right
                 dy0 = 1 if not self.compact and (center - pos_y) % 16 == 0 else 0
                 dy1 = 2 if not self.compact and (center - pos_y + 1) % 16 == 0 else 1
@@ -777,7 +779,7 @@ class AztecCode(object):
                 pos_x += 1
                 if num > max_num:
                     num = 2
-                    side = 'right'
+                    side = Side.right
                     pos_x -= 1
                     pos_y += 1
                 # skip reference grid
@@ -785,7 +787,7 @@ class AztecCode(object):
                     pos_x += 1
                 if not self.compact and (center - pos_y) % 16 == 0:
                     pos_y += 1
-            elif side == 'right':
+            elif side == Side.right:
                 # move down
                 dx0 = 1 if not self.compact and (center - pos_x) % 16 == 0 else 0
                 dx1 = 2 if not self.compact and (center - pos_x + 1) % 16 == 0 else 1
@@ -794,7 +796,7 @@ class AztecCode(object):
                 pos_y += 1
                 if num > max_num:
                     num = 2
-                    side = 'bottom'
+                    side = Side.bottom
                     pos_x -= 2
                     if not self.compact and (center - pos_x - 1) % 16 == 0:
                         pos_x -= 1
@@ -804,7 +806,7 @@ class AztecCode(object):
                     pos_y += 1
                 if not self.compact and (center - pos_x) % 16 == 0:
                     pos_x -= 1
-            elif side == 'bottom':
+            elif side == Side.bottom:
                 # move left
                 dy0 = 1 if not self.compact and (center - pos_y) % 16 == 0 else 0
                 dy1 = 2 if not self.compact and (center - pos_y + 1) % 16 == 0 else 1
@@ -813,7 +815,7 @@ class AztecCode(object):
                 pos_x -= 1
                 if num > max_num:
                     num = 2
-                    side = 'left'
+                    side = Side.left
                     pos_x += 1
                     pos_y -= 2
                     if not self.compact and (center - pos_y - 1) % 16 == 0:
@@ -823,7 +825,7 @@ class AztecCode(object):
                     pos_x -= 1
                 if not self.compact and (center - pos_y) % 16 == 0:
                     pos_y -= 1
-            elif side == 'left':
+            elif side == Side.left:
                 # move up
                 dx0 = 1 if not self.compact and (center - pos_x) % 16 == 0 else 0
                 dx1 = 2 if not self.compact and (center - pos_x - 1) % 16 == 0 else 1
@@ -832,7 +834,7 @@ class AztecCode(object):
                 pos_y -= 1
                 if num > max_num:
                     num = 2
-                    side = 'top'
+                    side = Side.top
                     layer_index += 1
                 # skip reference grid
                 if not self.compact and (center - pos_y) % 16 == 0:
