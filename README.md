@@ -27,6 +27,8 @@ This is a pure-Python library to generate [Aztec Code](https://en.wikipedia.org/
     via [ECI indications](https://en.wikipedia.org/wiki/Extended_Channel_Interpretation)
 - `v0.8`-`v0.9`:
   - replace Travis-CI with Github Actions for CI
+- `v0.10`
+  - bugfix for lowercase → uppercase transition (fixes encoding of strings like `abcABC`)
 
 
 ## Installation

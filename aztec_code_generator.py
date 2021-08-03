@@ -844,6 +844,7 @@ def main(argv):
     if len(argv) not in (2, 3):
         print("usage: {} STRING_TO_ENCODE [IMAGE_FILE]".format(argv[0]))
         print("  Generate a 2D Aztec barcode and print it, or save to a file.")
+        raise SystemExit(1)
     data = argv[1]
     aztec_code = AztecCode(data)
     print('Aztec Code info: {0}x{0} {1}'.format(aztec_code.size, '(compact)' if aztec_code.compact else ''))
