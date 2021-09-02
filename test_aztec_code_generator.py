@@ -90,7 +90,7 @@ class Test(unittest.TestCase):
         return [ Shift.PUNCT, Misc.FLG, len(ecis), eci ]
 
     def test_find_optimal_sequence_non_ASCII_strings(self):
-        """ Test find_optimal_sequence function for non-ASCII strings (currently only iso-8859-1) """
+        """ Test find_optimal_sequence function for non-ASCII strings"""
 
         # Implicit iso8559-1 without ECI:
         self.assertEqual(find_optimal_sequence('Français'), b(
@@ -150,8 +150,13 @@ class Test(unittest.TestCase):
     @unittest.skipUnless(zxing, reason='Python module zxing cannot be imported; cannot test decoding.')
     def test_barcode_readability(self):
         r = zxing.BarCodeReader()
-        # FIXME: ZXing command-line runner tries to coerce everything to UTF-8, so we can only reliably
-        # encode and decode characters in the intersection of utf-8 and iso8559-1.
+
+        # FIXME: ZXing command-line runner tries to coerce everything to UTF-8, at least on Linux,
+        # so we can only reliably encode and decode characters that are in the intersection of utf-8
+        # and iso8559-1 (though with ZXing >3.4.1, the iso8559-1 requirement is relaxed; see below).
+        #
+        # More discussion at: https://github.com/dlenski/python-zxing/issues/17#issuecomment-905728212
+        # Proposed solution: https://github.com/dlenski/python-zxing/issues/19
         self._encode_and_decode(r, 'Wikipedia, the free encyclopedia', ec_percent=0)
         self._encode_and_decode(r, 'Wow. Much error. Very correction. Amaze', ec_percent=95)
         self._encode_and_decode(r, '¿Cuánto cuesta?')
