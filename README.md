@@ -29,6 +29,9 @@ This is a pure-Python library to generate [Aztec Code](https://en.wikipedia.org/
   - replace Travis-CI with Github Actions for CI
 - `v0.10`
   - bugfix for lowercase → uppercase transition (fixes encoding of strings like `abcABC`)
+- `v0.11`
+  - fix docstrings
+  - change default `module_size` in image output to 2 pixels; ZXing can't read with `module_size=1`
 
 
 ## Installation
