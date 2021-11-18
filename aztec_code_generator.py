@@ -558,7 +558,7 @@ class AztecCode(object):
         """ Create Aztec code matrix with given size """
         self.matrix = [array.array('B', (0 for jj in range(self.size))) for ii in range(self.size)]
 
-    def save(self, filename, module_size=1, border=0, format=None):
+    def save(self, filename, module_size=2, border=0, format=None):
         """ Save matrix to image file
 
         :param filename: output image filename (or file object, with format).
@@ -568,7 +568,7 @@ class AztecCode(object):
         """
         self.image(module_size, border).save(filename, format=format)
 
-    def image(self, module_size=1, border=0):
+    def image(self, module_size=2, border=0):
         """ Create PIL image
 
         :param module_size: barcode module size in pixels.
