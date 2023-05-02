@@ -169,7 +169,7 @@ class Test(unittest.TestCase):
 
         # FIXME: ZXing command-line runner tries to coerce everything to UTF-8, at least on Linux,
         # so we can only reliably encode and decode characters that are in the intersection of utf-8
-        # and iso8559-1 (though with ZXing >3.4.1, the iso8559-1 requirement is relaxed; see below).
+        # and iso8559-1 (though with ZXing >=3.5, the iso8559-1 requirement is relaxed; see below).
         #
         # More discussion at: https://github.com/dlenski/python-zxing/issues/17#issuecomment-905728212
         # Proposed solution: https://github.com/dlenski/python-zxing/issues/19
@@ -181,12 +181,11 @@ class Test(unittest.TestCase):
     def test_barcode_readability_eci(self):
         r = zxing.BarCodeReader()
 
-        # Released versions of ZXing <=3.4.1, don't correctly decode ECI or FNC1 in Aztec (https://github.com/zxing/zxing/issues/1327),
+        # ZXing <=3.4.1 doesn't correctly decode ECI or FNC1 in Aztec (https://github.com/zxing/zxing/issues/1327),
         # so we don't have a way to test readability of barcodes containing characters not in iso8559-1.
-        # Now that https://github.com/zxing/zxing/pull/1328 is merged, we should be able to decode them correctly on
-        # subsequent releases.
-        if r.zxing_version_info <= (3, 4, 1):
-            raise unittest.SkipTest("Running with ZXing v{}, which can't decode non-iso8859-1 charsets in Aztec Code".format(r.zxing_version))
+        # ZXing 3.5.0 includes my contribution to decode Aztec codes with non-default charsets (https://github.com/zxing/zxing/pull/1328)
+        if r.zxing_version_info < (3, 5):
+            raise unittest.SkipTest("Running with ZXing v{}. In order to decode non-iso8859-1 charsets in Aztec Code, we need v3.5+".format(r.zxing_version))
 
         self._encode_and_decode(r, 'The price is €4', encoding='utf-8')
         self._encode_and_decode(r, 'אין לי מושג', encoding='iso8859-8')
