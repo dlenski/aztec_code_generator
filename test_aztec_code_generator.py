@@ -82,6 +82,8 @@ class Test(unittest.TestCase):
 
     def test_encodings_canonical(self):
         for encoding in encoding_to_eci:
+            if encoding == 'binary':
+                continue  # special case, not a codec name
             self.assertEqual(encoding, codecs.lookup(encoding).name)
 
     def _optimal_eci_sequence(self, charset):
@@ -103,6 +105,8 @@ class Test(unittest.TestCase):
             Shift.BINARY, 1, 0x80, Latch.DIGIT, '8', '0', '0'))
         self.assertEqual(find_optimal_sequence('Français', 'utf-8'), self._optimal_eci_sequence('utf-8') + b(
             'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 2, 0xc3, 0xa7, 'a', 'i', 's'))
+        self.assertEqual(find_optimal_sequence(b'\xff\xef\x00\xfe', 'binary'), self._optimal_eci_sequence('binary') + b(
+            Shift.BINARY, 4, '\xff', '\xef', '\x00', '\xfe'))
 
     def test_find_optimal_sequence_bytes(self):
         """ Test find_optimal_sequence function for byte strings """

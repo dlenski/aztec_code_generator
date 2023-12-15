@@ -96,6 +96,7 @@ encoding_to_eci = {
     'big5': 28,
     'gb18030': 29,
     'euc_kr': 30,
+    'binary': 899, # 8-bit binary (special case)
 }
 
 polynomials = {
@@ -223,15 +224,19 @@ def find_optimal_sequence(data, encoding=None):
     :return: optimal sequence
     """
 
-    # standardize encoding name, ensure that it's valid for ECI, and encode string to bytes
-    if encoding:
-        encoding = codecs.lookup(encoding).name
-        eci = encoding_to_eci[encoding]
+    if encoding == 'binary':
+        eci = 899
+        assert isinstance(data, bytes), "Cannot encode string with binary ECI type"
     else:
-        encoding = 'iso8859-1'
-        eci = None
-    if isinstance(data, str):
-        data = data.encode(encoding)
+        # standardize encoding name, ensure that it's valid for ECI, and encode string to bytes
+        if encoding:
+            encoding = codecs.lookup(encoding).name
+            eci = encoding_to_eci[encoding]
+        else:
+            encoding = 'iso8859-1'
+            eci = None
+        if isinstance(data, str):
+            data = data.encode(encoding)
 
     back_to = {m: Mode.UPPER for m in Mode}
     cur_len = {m: 0 if m==Mode.UPPER else E for m in Mode}
