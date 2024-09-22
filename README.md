@@ -32,7 +32,8 @@ This is a pure-Python library to generate [Aztec Code](https://en.wikipedia.org/
 - `v0.11`
   - fix docstrings
   - change default `module_size` in image output to 2 pixels; ZXing can't read with `module_size=1`
-
+- `v0.12`
+  - support for svg files in `save` method
 
 ## Installation
 
@@ -109,6 +110,8 @@ Originally written by [Dmitry Alimov (delimtry)](https://github.com/delimitry).
 
 Updates, bug fixes, Python 3-ification, and careful `bytes`-vs.-`str` handling
 by [Daniel Lenski (dlenski)](https://github.com/dlenski).
+
+Support for SVG files by [Mateusz Bilicki (zazzik1)](https://github.com/zazzik1).
 
 ## License:
 

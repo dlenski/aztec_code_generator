@@ -2,9 +2,18 @@
 #-*- coding: utf-8 -*-
 
 import unittest
+from unittest.mock import patch, mock_open, MagicMock
 from aztec_code_generator import (
-    reed_solomon, find_optimal_sequence, optimal_sequence_to_bits, get_data_codewords, encoding_to_eci,
-    Mode, Latch, Shift, Misc,
+    Mode,
+    Latch,
+    Shift,
+    Misc,
+    reed_solomon,
+    find_optimal_sequence,
+    optimal_sequence_to_bits,
+    get_data_codewords,
+    encoding_to_eci,
+    SvgFactory,
     AztecCode,
 )
 
@@ -189,6 +198,95 @@ class Test(unittest.TestCase):
 
         self._encode_and_decode(r, 'The price is €4', encoding='utf-8')
         self._encode_and_decode(r, 'אין לי מושג', encoding='iso8859-8')
+
+class TestSvgFactory(unittest.TestCase):
+    def test_init(self):
+        data = '<svg><text>example svg data</text></svg>'
+        instance = SvgFactory(data)
+        self.assertEqual(instance.svg_str, data)
+    
+    @patch('builtins.open', new_callable=mock_open)
+    def test_save(self, mock):
+        data = '<svg></svg>'
+        filename = 'example_filename.svg'
+        instance = SvgFactory(data)
+        mock.reset_mock()
+        instance.save(filename)
+        mock.assert_called_once_with(filename, "w")
+        mock().write.assert_called_once_with(data)
+
+    def test_save_with_provided_file_handler(self):
+        data = '<svg></svg>'
+        with NamedTemporaryFile(mode='w+') as fp:
+            instance = SvgFactory(data)
+            instance.save(fp)
+            fp.flush()
+            fp.seek(0)
+            saved_content = fp.read()
+            self.assertEqual(saved_content, data)
+
+    def test_create_svg(self):
+        CASES = [
+            dict(
+                matrix = [[1, 1, 1], [0 ,0 ,0 ], [1, 1, 1]],
+                snapshot = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 5"><rect x="0" y="0" width="5" height="5" fill="white" /><path d="M1 1 h3 M1 3 h3 Z" stroke="black" stroke-width="1" transform="translate(0,0.5)" /></svg>',
+            ),
+            dict(
+                matrix = [[1, 0, 0], [0, 1, 0], [0, 0 ,1]],
+                snapshot = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 5"><rect x="0" y="0" width="5" height="5" fill="white" /><path d="M1 1 h1 M2 2 h1 M3 3 h1 Z" stroke="black" stroke-width="1" transform="translate(0,0.5)" /></svg>',
+            ),
+            dict(
+                matrix = [[1, 0], [0, 1]],
+                snapshot = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><rect x="0" y="0" width="4" height="4" fill="white" /><path d="M1 1 h1 M2 2 h1 Z" stroke="black" stroke-width="1" transform="translate(0,0.5)" /></svg>'
+            ),
+            dict(
+                matrix = [[1, 0], [0, 1]],
+                border = 3,
+                snapshot = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><rect x="0" y="0" width="8" height="8" fill="white" /><path d="M3 3 h1 M4 4 h1 Z" stroke="black" stroke-width="1" transform="translate(0,0.5)" /></svg>'
+            ),
+            dict(
+                matrix = [['#', ' '], [' ', '#']],
+                matching_fn = lambda x: x == '#',
+                snapshot = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><rect x="0" y="0" width="4" height="4" fill="white" /><path d="M1 1 h1 M2 2 h1 Z" stroke="black" stroke-width="1" transform="translate(0,0.5)" /></svg>'
+            ),
+        ]
+        for case in CASES:
+            if "border" in case:
+                instance = SvgFactory.create_svg(case["matrix"], border=case["border"])
+            elif "matching_fn" in case:
+                instance = SvgFactory.create_svg(case["matrix"], matching_fn=case["matching_fn"])
+            else:
+                instance = SvgFactory.create_svg(case["matrix"])
+            self.assertIsInstance(instance, SvgFactory)
+            self.assertEqual(
+                instance.svg_str,
+                case["snapshot"],
+                'should match snapshot'
+            )
+
+class TestAztecCode(unittest.TestCase):
+    def test_save_should_support_svg(self):
+        """ Should call SvgFactory.save for SVG files """
+        mock_svg_factory_save = MagicMock()
+        SvgFactory.save = mock_svg_factory_save
+        aztec_code = AztecCode('example data')
+
+        # filename .svg, format None
+        filename = 'file.svg'
+        aztec_code.save(filename)
+        mock_svg_factory_save.assert_called_once_with(filename)
+        mock_svg_factory_save.reset_mock()
+
+        # filename != .svg, format 'svg'
+        filename = 'file.png'
+        aztec_code.save(filename, format='svg')
+        mock_svg_factory_save.assert_called_once_with(filename)
+        mock_svg_factory_save.reset_mock()
+
+        # filename is a file object, format 'svg'
+        with NamedTemporaryFile() as fp:
+            aztec_code.save(fp, format='svg')
+            mock_svg_factory_save.assert_called_once_with(fp)
 
 
 if __name__ == '__main__':
