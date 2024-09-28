@@ -6,7 +6,7 @@
 
     Aztec code generator.
 
-    :copyright: (c) 2016-2018 by Dmitry Alimov.
+    :copyright: (c) 2016-2022 by Dmitry Alimov.
     :license: The MIT License (MIT), see LICENSE for more details.
 """
 
@@ -17,6 +17,8 @@ import array
 import codecs
 from collections import namedtuple
 from enum import Enum
+from io import IOBase
+
 
 try:
     from PIL import Image, ImageDraw
@@ -163,14 +165,14 @@ abbr_modes = {m.name[0]:m for m in Mode}
 
 
 def prod(x, y, log, alog, gf):
-    """ Product x times y """
+    """Product x times y."""
     if not x or not y:
         return 0
     return alog[(log[x] + log[y]) % (gf - 1)]
 
 
 def reed_solomon(wd, nd, nc, gf, pp):
-    """ Calculate error correction codewords
+    """Calculate error correction codewords.
 
     Algorithm is based on Aztec Code bar code symbology specification from
     GOST-R-ISO-MEK-24778-2010 (Russian)
@@ -178,11 +180,13 @@ def reed_solomon(wd, nd, nc, gf, pp):
     codewords, all within GF(gf) where ``gf`` is a power of 2 and ``pp``
     is the value of its prime modulus polynomial.
 
-    :param wd: data codewords (in/out param)
-    :param nd: number of data codewords
-    :param nc: number of error correction codewords
-    :param gf: Galois Field order
-    :param pp: prime modulus polynomial value
+    :param list[int] wd: Data codewords (in/out param).
+    :param int nd: Number of data codewords.
+    :param int nc: Number of error correction codewords.
+    :param int gf: Galois Field order.
+    :param int pp: Prime modulus polynomial value.
+    
+    :return: None.
     """
     # generate log and anti log tables
     log = {0: 1 - gf}
@@ -192,7 +196,7 @@ def reed_solomon(wd, nd, nc, gf, pp):
         if alog[i] >= gf:
             alog[i] ^= pp
         log[alog[i]] = i
-    # generate polynomial coeffs
+    # generate polynomial coefficients
     c = {0: 1}
     for i in range(1, nc + 1):
         c[i] = 0
@@ -388,10 +392,11 @@ def find_optimal_sequence(data, encoding=None):
 
 
 def optimal_sequence_to_bits(optimal_sequence):
-    """ Convert optimal sequence to bits
+    """Convert optimal sequence to bits.
 
-    :param optimal_sequence: input optimal sequence
-    :return: string with bits
+    :param list[str|int] optimal_sequence: Input optimal sequence.
+
+    :return: String with bits.
     """
     out_bits = ''
     mode = prev_mode = Mode.UPPER
@@ -458,12 +463,13 @@ def optimal_sequence_to_bits(optimal_sequence):
 
 
 def get_data_codewords(bits, codeword_size):
-    """ Get codewords stream from data bits sequence
-    Bit stuffing and padding are used to avoid all-zero and all-ones codewords
+    """Get codewords stream from data bits sequence.
+    Bit stuffing and padding are used to avoid all-zero and all-ones codewords.
 
-    :param bits: input data bits
-    :param codeword_size: codeword size in bits
-    :return: data codewords
+    :param str bits: Input data bits.
+    :param int codeword_size: Codeword size in bits.
+    
+    :return: Data codewords.
     """
     codewords = []
     sub_bits = ''
@@ -492,9 +498,7 @@ def get_data_codewords(bits, codeword_size):
 def get_config_from_table(size, compact):
     """ Get config with given size and compactness flag
 
-    :param size: matrix size
-    :param compact: compactness flag
-    :return: dict with config
+    :return: Dict with config.
     """
     try:
         return configs[(size, compact)]
@@ -521,9 +525,56 @@ def find_suitable_matrix_size(data, ec_percent=23, encoding=None):
             return size, compact, optimal_sequence
     raise Exception('Data too big to fit in one Aztec code!')
 
+
+class SvgFactory:
+    def __init__(self, data):
+        """ Do not call it directly, use the create_svg method instead
+
+        :param data: String representation of the image
+        """
+        self.svg_str = data
+
+    @staticmethod
+    def create_svg(matrix, border=1, matching_fn=lambda x: x == 1):
+        """ Creates the image in SVG format based on the two dimensional array
+
+        :param matrix: Two dimensional array of data
+        :param border: Border width (px)
+        :param matching_fn: Function to differenciate ones from zeros in the matrix
+        :return: An instance of SvgFactory
+        """
+        d = ''
+        for y, line in enumerate(matrix):
+            dx = 0
+            x0 = None
+            for x, char in enumerate(line):
+                if matching_fn(char):
+                    dx += 1
+                    if x0 is None:
+                        x0 = x
+                if x0 is not None and (x + 1 >= len(line) or not matching_fn(line[x + 1])):
+                    d += f" M{x0 + border} {y + border} h{dx}"
+                    dx = 0
+                    x0 = None
+        size = len(matrix[0]) + (2 * border)
+        data = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}"><rect x="0" y="0" width="{size}" height="{size}" fill="white" /><path d="{d[1:]} Z" stroke="black" stroke-width="1" transform="translate(0,0.5)" /></svg>'
+        return SvgFactory(data)
+
+    def save(self, filename):
+        """ Save SVG to image file
+
+        :param filename: output image filename or file object
+        :return: None
+        """
+        if isinstance(filename, IOBase) or hasattr(filename, 'write'):
+            return filename.write(self.svg_str)
+        with open(filename, 'w') as file:
+            file.write(self.svg_str)
+
+
 class AztecCode(object):
     """
-    Aztec code generator
+    Aztec code generator.
     """
 
     def __init__(self, data, size=None, compact=None, ec_percent=23, encoding=None):
@@ -558,6 +609,15 @@ class AztecCode(object):
         """ Create Aztec code matrix with given size """
         self.matrix = [array.array('B', (0 for jj in range(self.size))) for ii in range(self.size)]
 
+    def __is_svg_file(self, filename, format):
+        """ Detects if the file is in SVG format
+        :param filename: image filename (or file object, with format)
+        :param format: image format (PNG, SVG, etc.) or None
+        """
+        return (format is not None and format.lower() == 'svg') or (format is None and \
+            (isinstance(filename, str) and filename.lower().endswith('.svg')) or \
+            (isinstance(filename, IOBase) or hasattr(filename, 'write')) and filename.name.lower().endswith('.svg'))
+
     def save(self, filename, module_size=2, border=0, format=None):
         """ Save matrix to image file
 
@@ -566,6 +626,8 @@ class AztecCode(object):
         :param border: barcode border size in modules.
         :param format: Pillow image format, such as 'PNG'
         """
+        if self.__is_svg_file(filename, format):
+            return SvgFactory.create_svg(self.matrix, border).save(filename)
         self.image(module_size, border).save(filename, format=format)
 
     def image(self, module_size=2, border=0):
@@ -608,7 +670,7 @@ class AztecCode(object):
             print(ul)
 
     def __add_finder_pattern(self):
-        """ Add bulls-eye finder pattern """
+        """Add bulls-eye finder pattern."""
         center = self.size // 2
         ring_radius = 5 if self.compact else 7
         for x in range(-ring_radius, ring_radius):
@@ -616,7 +678,7 @@ class AztecCode(object):
                 self.matrix[center + y][center + x] = (max(abs(x), abs(y)) + 1) % 2
 
     def __add_orientation_marks(self):
-        """ Add orientation marks to matrix """
+        """Add orientation marks to matrix."""
         center = self.size // 2
         ring_radius = 5 if self.compact else 7
         # add orientation marks
@@ -631,7 +693,7 @@ class AztecCode(object):
         self.matrix[center + ring_radius - 1][center + ring_radius + 0] = 1
 
     def __add_reference_grid(self):
-        """ Add reference grid to matrix """
+        """Add reference grid to matrix."""
         if self.compact:
             return
         center = self.size // 2
@@ -646,11 +708,12 @@ class AztecCode(object):
                     self.matrix[center + y][center + x] = (x + y + 1) % 2
 
     def __get_mode_message(self, layers_count, data_cw_count):
-        """ Get mode message
+        """Get mode message.
 
-        :param layers_count: number of layers
-        :param data_cw_count: number of data codewords
-        :return: mode message codewords
+        :param int layers_count: Number of layers.
+        :param int data_cw_count: Number of data codewords.
+
+        :return: Mode message codewords.
         """
         if self.compact:
             # for compact mode - 2 bits with layers count and 6 bits with data codewords count
@@ -672,9 +735,11 @@ class AztecCode(object):
         return codewords
 
     def __add_mode_info(self, data_cw_count):
-        """ Add mode info to matrix
+        """Add mode info to matrix.
 
-        :param data_cw_count: number of data codewords.
+        :param int data_cw_count: Number of data codewords.
+
+        :return: None.
         """
         config = get_config_from_table(self.size, self.compact)
         layers_count = config.layers
@@ -832,7 +897,7 @@ class AztecCode(object):
         return data_cw_count
 
     def __encode_data(self):
-        """ Encode data """
+        """Encode data."""
         self.__add_finder_pattern()
         self.__add_orientation_marks()
         self.__add_reference_grid()

@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
     - uses: actions/checkout@v2
@@ -40,7 +40,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
     - uses: actions/checkout@v2
@@ -54,7 +54,7 @@ jobs:
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
     - name: Test
       run: |
-        python setup.py test
+        py.test --verbose
 
   # https://github.com/actions/starter-workflows/blob/main/ci/python-publish.yml
   release:
