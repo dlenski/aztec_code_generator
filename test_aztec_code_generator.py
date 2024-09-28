@@ -265,7 +265,29 @@ class TestSvgFactory(unittest.TestCase):
             )
 
 class TestAztecCode(unittest.TestCase):
-    def test_save_should_support_svg(self):
+    def test_save_should_use_PIL_if_not_SVG(self):
+        aztec_code = AztecCode('example data')
+        class Image:
+            def save():
+                pass
+        image_mock = Image()
+        image_mock.save = MagicMock()
+        with patch.object(aztec_code, 'image', return_value=image_mock):
+            # filename .png, format None
+            aztec_code.save('image.png')
+            image_mock.save.assert_called_once()
+            image_mock.save.reset_mock()
+            
+            # filename .jpg, format None
+            aztec_code.save('image.jpg')
+            image_mock.save.assert_called_once()
+            image_mock.save.reset_mock()
+
+            # filename .svg, format 'PNG'
+            aztec_code.save('image.svg', format='PNG')
+            image_mock.save.assert_called_once()
+        
+    def test_save_should_support_SVG(self):
         """ Should call SvgFactory.save for SVG files """
         mock_svg_factory_save = MagicMock()
         SvgFactory.save = mock_svg_factory_save
@@ -277,9 +299,9 @@ class TestAztecCode(unittest.TestCase):
         mock_svg_factory_save.assert_called_once_with(filename)
         mock_svg_factory_save.reset_mock()
 
-        # filename != .svg, format 'svg'
+        # filename != .svg, format 'SVG'
         filename = 'file.png'
-        aztec_code.save(filename, format='svg')
+        aztec_code.save(filename, format='SVG')
         mock_svg_factory_save.assert_called_once_with(filename)
         mock_svg_factory_save.reset_mock()
 

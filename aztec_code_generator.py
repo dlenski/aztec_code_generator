@@ -612,6 +612,7 @@ class AztecCode(object):
     def __is_svg_file(self, filename, format):
         """ Detects if the file is in SVG format
         :param filename: image filename (or file object, with format)
+        :param format: image format (PNG, SVG, etc.) or None
         """
         return (format is not None and format.lower() == 'svg') or (format is None and \
             (isinstance(filename, str) and filename.lower().endswith('.svg')) or \
