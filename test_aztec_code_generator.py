@@ -119,20 +119,19 @@ class Test(unittest.TestCase):
         self.assertEqual(find_optimal_sequence(b'@\xff'), b(Shift.BINARY, 2, '@', '\xff'))
         self.assertEqual(find_optimal_sequence(b'. @\xff'), b(Shift.PUNCT, '. ', Shift.BINARY, 2, '@', '\xff'))
 
-    @unittest.expectedFailure
     def test_find_optimal_sequence_CRLF_bug(self):
-        """ Demonstrate a known bug in find_optimal_sequence.
+        """ Demonstrate a known bug in find_optimal_sequence (https://github.com/dlenski/aztec_code_generator/pull/4)
 
         This is a much more minimal example of https://github.com/delimitry/aztec_code_generator/issues/7
 
         The string '\t<\r\n':
-          SHOULD be sequenced as:          Latch.MIXED '\t' < '\r' '\n'
-          but is incorrectly sequenced as: Latch.MIXED '\t' < '\r\n'
+          SHOULD be sequenced as:          Latch.MIXED '\t' Latch.PUNCT < '\r' '\n'
+          but is incorrectly sequenced as: Latch.MIXED '\t' Shift.PUNCT < '\r\n'
 
         ... which is impossible since no encoding of the 2 byte sequence b'\r\n' exists in MIXED mode. """
 
         self.assertEqual(find_optimal_sequence(b'\t<\r\n'), b(
-            Latch.MIXED, '\t', Shift.PUNCT, '<', '\r', '\n'
+            Latch.MIXED, '\t', Latch.PUNCT, '<', '\r\n'
         ))
 
     def test_optimal_sequence_to_bits(self):

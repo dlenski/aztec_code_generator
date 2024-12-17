@@ -336,9 +336,10 @@ def find_optimal_sequence(data, encoding=None):
                 if last_mode == Mode.PUNCT:
                     last_c = cur_seq[x][-1]
                     if isinstance(last_c, int) and bytes((last_c, c)) in punct_2_chars:
-                        if cur_len[x] < next_len[x]:
-                            next_len[x] = cur_len[x]
-                            next_seq[x] = cur_seq[x][:-1] + [ bytes((last_c, c)) ]
+                        if x != Mode.MIXED:  # we need to avoid this because it contains '\r', '\n' individually, but not combined
+                            if cur_len[x] < next_len[x]:
+                                next_len[x] = cur_len[x]
+                                next_seq[x] = cur_seq[x][:-1] + [ bytes((last_c, c)) ]
         if len(next_seq[Mode.BINARY]) - 2 == 32:
             next_len[Mode.BINARY] += 11
         cur_len = next_len.copy()
