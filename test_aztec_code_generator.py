@@ -128,7 +128,7 @@ class Test(unittest.TestCase):
     def test_find_optimal_sequence_non_ASCII_strings(self):
         """ Test find_optimal_sequence function for non-ASCII strings"""
 
-        # Implicit iso8559-1 without ECI:
+        # Implicit iso8859-1 without ECI:
         self.assertEqual(find_optimal_sequence('Français'), b(
             'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 1, 0xe7, 'a', 'i', 's'))
 
@@ -156,13 +156,13 @@ class Test(unittest.TestCase):
         self.assertEqual(find_optimal_sequence(b'. @\xff'), b(Shift.PUNCT, '. ', Shift.BINARY, 2, '@', '\xff'))
 
     def test_find_optimal_sequence_CRLF_bug(self):
-        """ Demonstrate a known bug in find_optimal_sequence (https://github.com/dlenski/aztec_code_generator/pull/4)
+        """ Demonstrate a now-fixed bug in find_optimal_sequence (https://github.com/dlenski/aztec_code_generator/pull/4)
 
         This is a much more minimal example of https://github.com/delimitry/aztec_code_generator/issues/7
 
         The string '\t<\r\n':
-          SHOULD be sequenced as:          Latch.MIXED '\t' Latch.PUNCT < '\r' '\n'
-          but is incorrectly sequenced as: Latch.MIXED '\t' Shift.PUNCT < '\r\n'
+          SHOULD be sequenced as:          Latch.MIXED '\t' Latch.PUNCT '<' '\r\n'
+          but is incorrectly sequenced as: Latch.MIXED '\t' Shift.PUNCT '<' '\r\n'
 
         ... which is impossible since no encoding of the 2 byte sequence b'\r\n' exists in MIXED mode. """
 
@@ -220,7 +220,7 @@ class Test(unittest.TestCase):
 
         # FIXME: ZXing command-line runner tries to coerce everything to UTF-8, at least on Linux,
         # so we can only reliably encode and decode characters that are in the intersection of utf-8
-        # and iso8559-1 (though with ZXing >=3.5, the iso8559-1 requirement is relaxed; see below).
+        # and iso8859-1 (though with ZXing >=3.5, the iso8859-1 requirement is relaxed; see below).
         #
         # More discussion at: https://github.com/dlenski/python-zxing/issues/17#issuecomment-905728212
         # Proposed solution: https://github.com/dlenski/python-zxing/issues/19
@@ -233,7 +233,7 @@ class Test(unittest.TestCase):
         r = zxing.BarCodeReader()
 
         # ZXing <=3.4.1 doesn't correctly decode ECI or FNC1 in Aztec (https://github.com/zxing/zxing/issues/1327),
-        # so we don't have a way to test readability of barcodes containing characters not in iso8559-1.
+        # so we don't have a way to test readability of barcodes containing characters not in iso8859-1.
         # ZXing 3.5.0 includes my contribution to decode Aztec codes with non-default charsets (https://github.com/zxing/zxing/pull/1328)
         if r.zxing_version_info < (3, 5):
             raise unittest.SkipTest("Running with ZXing v{}. In order to decode non-iso8859-1 charsets in Aztec Code, we need v3.5+".format(r.zxing_version))
