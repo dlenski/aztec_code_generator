@@ -498,10 +498,16 @@ def find_suitable_matrix_size(data, ec_percent=23, encoding=None):
     optimal_sequence = find_optimal_sequence(data, encoding)
     out_bits = optimal_sequence_to_bits(optimal_sequence)
     for (size, compact), config in configs.items():
-        bits = config.codewords * config.cw_bits
-        # calculate minimum required number of bits
-        required_bits_count = int(math.ceil((len(out_bits) + 3) * 100.0 / (100 - ec_percent)))
-        if required_bits_count < bits:
+        # calculate data codewords
+        data_codewords = get_data_codewords(out_bits, config.cw_bits)
+        data_cw_count = len(data_codewords)
+
+        # calculate minimum required number of codewords to reach
+        # the desired level of error-correction
+        required_cw_count = (data_cw_count + 3) * 100.0 / (100 - ec_percent)
+
+        # if they fit in this size symbol, we're done
+        if required_cw_count < config.codewords:
             return size, compact, optimal_sequence
     raise Exception('Data too big to fit in one Aztec code!')
 
@@ -710,16 +716,14 @@ class AztecCode(object):
         layers_count = config.layers
         cw_count = config.codewords
         cw_bits = config.cw_bits
-        bits = cw_count * cw_bits
 
-        # calculate minimum required number of bits
-        required_bits_count = int(math.ceil((len(out_bits) + 3) * 100.0 / (100 - self.ec_percent)))
+        # calculate data codewords, and ensure data will fit
         data_codewords = get_data_codewords(out_bits, cw_bits)
-        if required_bits_count > bits:
+        data_cw_count = len(data_codewords)
+        if data_cw_count > cw_count:
             raise Exception('Data too big to fit in Aztec code with current size!')
 
         # add Reed-Solomon codewords to init data codewords
-        data_cw_count = len(data_codewords)
         codewords = (data_codewords + [0] * (cw_count - data_cw_count))[:cw_count]
         reed_solomon(codewords, data_cw_count, cw_count - data_cw_count, 2 ** cw_bits, polynomials[cw_bits])
 
