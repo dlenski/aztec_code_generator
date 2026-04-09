@@ -24,10 +24,7 @@ except ImportError:
     Image = ImageDraw = None
     missing_pil = sys.exc_info()
 
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
+from io import StringIO
 
 Config = namedtuple('Config', ('layers', 'codewords', 'cw_bits', 'bits'))
 
@@ -490,18 +487,6 @@ def get_data_codewords(bits, codeword_size):
     return codewords
 
 
-def get_config_from_table(size, compact):
-    """ Get config with given size and compactness flag
-
-    :param size: matrix size
-    :param compact: compactness flag
-    :return: dict with config
-    """
-    try:
-        return configs[(size, compact)]
-    except KeyError:
-        raise NotImplementedError('Failed to find config with size and compactness flag')
-
 def find_suitable_matrix_size(data, ec_percent=23, encoding=None):
     """ Find suitable matrix size
     Raise an exception if suitable size is not found
@@ -513,8 +498,7 @@ def find_suitable_matrix_size(data, ec_percent=23, encoding=None):
     """
     optimal_sequence = find_optimal_sequence(data, encoding)
     out_bits = optimal_sequence_to_bits(optimal_sequence)
-    for (size, compact) in sorted(configs.keys()):
-        config = get_config_from_table(size, compact)
+    for (size, compact), config in configs.items():
         bits = config.bits
         # calculate minimum required number of bits
         required_bits_count = int(math.ceil((len(out_bits) + 3) * 100.0 / (100 - ec_percent)))
@@ -677,7 +661,7 @@ class AztecCode(object):
 
         :param data_cw_count: number of data codewords.
         """
-        config = get_config_from_table(self.size, self.compact)
+        config = configs[(self.size, self.compact)]
         layers_count = config.layers
         mode_data_values = self.__get_mode_message(layers_count, data_cw_count)
         mode_data_bits = ''.join('{0:04b}'.format(v) for v in mode_data_values)
@@ -729,7 +713,7 @@ class AztecCode(object):
         if not self.sequence:
             self.sequence = find_optimal_sequence(data, encoding)
         out_bits = optimal_sequence_to_bits(self.sequence)
-        config = get_config_from_table(self.size, self.compact)
+        config = configs[(self.size, self.compact)]
         layers_count = config.layers
         cw_count = config.codewords
         cw_bits = config.cw_bits

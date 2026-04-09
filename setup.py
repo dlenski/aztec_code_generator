@@ -5,8 +5,8 @@ try:
 except ImportError:
   from distutils.core import setup
 
-if sys.version_info < (3,4):
-    sys.exit("Python 3.4+ is required; you are using %s" % sys.version)
+if sys.version_info < (3, 7):
+    sys.exit("Python 3.7+ is required; you are using %s" % sys.version)
 
 setup(name="aztec_code_generator",
       version="0.11",
@@ -20,9 +20,7 @@ setup(name="aztec_code_generator",
       install_requires=open('requirements.txt').readlines(),
       extras_require={
           "Image": [
-              "pillow>=3.0,<6.0; python_version < '3.5'",
-              "pillow>=3.0,<8.0; python_version >= '3.5' and python_version < '3.6'",
-              "pillow>=8.0; python_version >= '3.6'",
+              "pillow>=8.0",
           ]
       },
       tests_require=open('requirements-test.txt').readlines(),
