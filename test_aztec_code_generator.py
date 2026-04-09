@@ -4,6 +4,7 @@
 import unittest
 from aztec_code_generator import (
     reed_solomon, find_optimal_sequence, optimal_sequence_to_bits, get_data_codewords, encoding_to_eci,
+    configs,
     Mode, Latch, Shift, Misc,
     AztecCode,
 )
@@ -23,6 +24,41 @@ class Test(unittest.TestCase):
     """
     Test aztec_code_generator module
     """
+
+    def test_config_size_correctness(self):
+        """ Verify the correctness of the layers and codewords in the symbol size configs """
+        for (size, compact), config in configs.items():
+            # Start with total matrix size
+            bits_avail = size * size
+
+            # Subtract bits occupied by the core (bullseye + orientation marks)
+            core_size = 11 if compact else 15
+            bits_avail -= core_size * core_size
+
+            if not compact:
+                # Number of horizontal and vertical lines in reference grid
+                n_ref_lines = 1 + 2*(size // 32)
+
+                # Subtract bits occupied by the horizontal lines,
+                # without double-counting the core bits
+                bits_avail -= n_ref_lines*size - core_size
+
+                # Subtract bits occupied by the vertical lines,
+                # without double-counting either the core bits or
+                # those already counted in the horizontal lines
+                bits_avail -= n_ref_lines*size - core_size - (n_ref_lines * n_ref_lines - 1)
+
+            # Verify correctness of layers and bits available
+            expected_bits_avail = ((88 if compact else 112) + 16 * config.layers) * config.layers
+            self.assertEqual(expected_bits_avail, bits_avail,
+                             f"{expected_bits_avail} bits should fit in {config.layers} layers of {size}x{size} "
+                             f"{'compact' if compact else 'full'} symbol, but we calculated {bits_avail}")
+
+            # Verify correctness of codewords in config
+            cw_avail = bits_avail // config.cw_bits
+            self.assertEqual(cw_avail, config.codewords,
+                             f"{cw_avail} codewords should fit in {size}x{size} "
+                             f"{'compact' if compact else 'full'} symbol, but config has {config.codewords}")
 
     def test_reed_solomon(self):
         """ Test reed_solomon function """
