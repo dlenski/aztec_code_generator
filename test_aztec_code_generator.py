@@ -134,6 +134,22 @@ class Test(unittest.TestCase):
             Latch.MIXED, '\t', Latch.PUNCT, '<', '\r\n'
         ))
 
+    @unittest.expectedFailure
+    def test_encoding_failure_long_sequence_FF(self):
+        """
+        Per https://github.com/dlenski/aztec_code_generator/issues/7#issuecomment-4193498761,
+        "when encoding 212 bytes 0xFF with `ec_percent=10` ... encoding is impossible"
+        """
+        AztecCode(b'\xff'*212, ec_percent=10)
+
+    @unittest.expectedFailure
+    def test_encoding_failure_long_sequence_00(self):
+        """
+        Per https://github.com/dlenski/aztec_code_generator/issues/7#issuecomment-4193498761,
+        this also happens when the input "contains long sequences of 0x00"
+        """
+        AztecCode(b'\0'*212, ec_percent=10)
+
     def test_optimal_sequence_to_bits(self):
         """ Test optimal_sequence_to_bits function """
         self.assertEqual(optimal_sequence_to_bits(b()), '')
