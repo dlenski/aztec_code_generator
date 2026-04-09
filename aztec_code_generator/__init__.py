@@ -27,45 +27,45 @@ except ImportError:
 
 from io import StringIO
 
-Config = namedtuple('Config', ('layers', 'codewords', 'cw_bits', 'bits'))
+Config = namedtuple('Config', ('layers', 'codewords', 'cw_bits'))
 
 configs = {
-    (15, True): Config(layers=1, codewords=17, cw_bits=6, bits=102),
-    (19, False): Config(layers=1, codewords=21, cw_bits=6, bits=126),
-    (19, True): Config(layers=2, codewords=40, cw_bits=6, bits=240),
-    (23, False): Config(layers=2, codewords=48, cw_bits=6, bits=288),
-    (23, True): Config(layers=3, codewords=51, cw_bits=8, bits=408),
-    (27, False): Config(layers=3, codewords=60, cw_bits=8, bits=480),
-    (27, True): Config(layers=4, codewords=76, cw_bits=8, bits=608),
-    (31, False): Config(layers=4, codewords=88, cw_bits=8, bits=704),
-    (37, False): Config(layers=5, codewords=120, cw_bits=8, bits=960),
-    (41, False): Config(layers=6, codewords=156, cw_bits=8, bits=1248),
-    (45, False): Config(layers=7, codewords=196, cw_bits=8, bits=1568),
-    (49, False): Config(layers=8, codewords=240, cw_bits=8, bits=1920),
-    (53, False): Config(layers=9, codewords=230, cw_bits=10, bits=2300),
-    (57, False): Config(layers=10, codewords=272, cw_bits=10, bits=2720),
-    (61, False): Config(layers=11, codewords=316, cw_bits=10, bits=3160),
-    (67, False): Config(layers=12, codewords=364, cw_bits=10, bits=3640),
-    (71, False): Config(layers=13, codewords=416, cw_bits=10, bits=4160),
-    (75, False): Config(layers=14, codewords=470, cw_bits=10, bits=4700),
-    (79, False): Config(layers=15, codewords=528, cw_bits=10, bits=5280),
-    (83, False): Config(layers=16, codewords=588, cw_bits=10, bits=5880),
-    (87, False): Config(layers=17, codewords=652, cw_bits=10, bits=6520),
-    (91, False): Config(layers=18, codewords=720, cw_bits=10, bits=7200),
-    (95, False): Config(layers=19, codewords=790, cw_bits=10, bits=7900),
-    (101, False): Config(layers=20, codewords=864, cw_bits=10, bits=8640),
-    (105, False): Config(layers=21, codewords=940, cw_bits=10, bits=9400),
-    (109, False): Config(layers=22, codewords=1020, cw_bits=10, bits=10200),
-    (113, False): Config(layers=23, codewords=920, cw_bits=12, bits=11040),
-    (117, False): Config(layers=24, codewords=992, cw_bits=12, bits=11904),
-    (121, False): Config(layers=25, codewords=1066, cw_bits=12, bits=12792),
-    (125, False): Config(layers=26, codewords=1144, cw_bits=12, bits=13728),
-    (131, False): Config(layers=27, codewords=1224, cw_bits=12, bits=14688),
-    (135, False): Config(layers=28, codewords=1306, cw_bits=12, bits=15672),
-    (139, False): Config(layers=29, codewords=1392, cw_bits=12, bits=16704),
-    (143, False): Config(layers=30, codewords=1480, cw_bits=12, bits=17760),
-    (147, False): Config(layers=31, codewords=1570, cw_bits=12, bits=18840),
-    (151, False): Config(layers=32, codewords=1664, cw_bits=12, bits=19968),
+    (15, True): Config(layers=1, codewords=17, cw_bits=6),
+    (19, False): Config(layers=1, codewords=21, cw_bits=6),
+    (19, True): Config(layers=2, codewords=40, cw_bits=6),
+    (23, False): Config(layers=2, codewords=48, cw_bits=6),
+    (23, True): Config(layers=3, codewords=51, cw_bits=8),
+    (27, False): Config(layers=3, codewords=60, cw_bits=8),
+    (27, True): Config(layers=4, codewords=76, cw_bits=8),
+    (31, False): Config(layers=4, codewords=88, cw_bits=8),
+    (37, False): Config(layers=5, codewords=120, cw_bits=8),
+    (41, False): Config(layers=6, codewords=156, cw_bits=8),
+    (45, False): Config(layers=7, codewords=196, cw_bits=8),
+    (49, False): Config(layers=8, codewords=240, cw_bits=8),
+    (53, False): Config(layers=9, codewords=230, cw_bits=10),
+    (57, False): Config(layers=10, codewords=272, cw_bits=10),
+    (61, False): Config(layers=11, codewords=316, cw_bits=10),
+    (67, False): Config(layers=12, codewords=364, cw_bits=10),
+    (71, False): Config(layers=13, codewords=416, cw_bits=10),
+    (75, False): Config(layers=14, codewords=470, cw_bits=10),
+    (79, False): Config(layers=15, codewords=528, cw_bits=10),
+    (83, False): Config(layers=16, codewords=588, cw_bits=10),
+    (87, False): Config(layers=17, codewords=652, cw_bits=10),
+    (91, False): Config(layers=18, codewords=720, cw_bits=10),
+    (95, False): Config(layers=19, codewords=790, cw_bits=10),
+    (101, False): Config(layers=20, codewords=864, cw_bits=10),
+    (105, False): Config(layers=21, codewords=940, cw_bits=10),
+    (109, False): Config(layers=22, codewords=1020, cw_bits=10),
+    (113, False): Config(layers=23, codewords=920, cw_bits=12),
+    (117, False): Config(layers=24, codewords=992, cw_bits=12),
+    (121, False): Config(layers=25, codewords=1066, cw_bits=12),
+    (125, False): Config(layers=26, codewords=1144, cw_bits=12),
+    (131, False): Config(layers=27, codewords=1224, cw_bits=12),
+    (135, False): Config(layers=28, codewords=1306, cw_bits=12),
+    (139, False): Config(layers=29, codewords=1392, cw_bits=12),
+    (143, False): Config(layers=30, codewords=1480, cw_bits=12),
+    (147, False): Config(layers=31, codewords=1570, cw_bits=12),
+    (151, False): Config(layers=32, codewords=1664, cw_bits=12),
 }
 
 encoding_to_eci = {
@@ -500,7 +500,7 @@ def find_suitable_matrix_size(data, ec_percent=23, encoding=None):
     optimal_sequence = find_optimal_sequence(data, encoding)
     out_bits = optimal_sequence_to_bits(optimal_sequence)
     for (size, compact), config in configs.items():
-        bits = config.bits
+        bits = config.codewords * config.cw_bits
         # calculate minimum required number of bits
         required_bits_count = int(math.ceil((len(out_bits) + 3) * 100.0 / (100 - ec_percent)))
         if required_bits_count < bits:
@@ -718,7 +718,7 @@ class AztecCode(object):
         layers_count = config.layers
         cw_count = config.codewords
         cw_bits = config.cw_bits
-        bits = config.bits
+        bits = cw_count * cw_bits
 
         # calculate minimum required number of bits
         required_bits_count = int(math.ceil((len(out_bits) + 3) * 100.0 / (100 - self.ec_percent)))
