@@ -25,8 +25,6 @@ except ImportError:
     Image = ImageDraw = None
     missing_pil = sys.exc_info()
 
-from io import StringIO
-
 Config = namedtuple('Config', ('layers', 'codewords', 'cw_bits'))
 
 configs = {
@@ -670,20 +668,14 @@ class AztecCode(object):
         center = self.size // 2
         ring_radius = 5 if self.compact else 7
         side_size = 7 if self.compact else 11
-        bits_stream = StringIO(mode_data_bits)
         x = 0
         y = 0
         index = 0
-        while True:
+        for bit in mode_data_bits:
             # for full mode take a reference grid into account
             if not self.compact:
                 if (index % side_size) == 5:
                     index += 1
-                    continue
-            # read one bit
-            bit = bits_stream.read(1)
-            if not bit:
-                break
             if 0 <= index < side_size:
                 # top
                 x = index + 2 - ring_radius
