@@ -13,9 +13,9 @@ import codecs
 from tempfile import NamedTemporaryFile
 
 try:
-    import zxing
+    import pyrxing
 except ImportError:
-    zxing = None
+    pyrxing = None
 
 def b(*l):
     return [(ord(c) if len(c)==1 else c.encode()) if isinstance(c, str) else c for c in l]
@@ -206,40 +206,24 @@ class Test(unittest.TestCase):
         self.assertEqual(get_data_codewords('111111', 6), [0b111110, 0b111110])
         self.assertEqual(get_data_codewords('111101111101', 6), [0b111101, 0b111101])
 
-    def _encode_and_decode(self, reader, data, *args, **kwargs):
+    def _encode_and_decode(self, data, *args, **kwargs):
         with NamedTemporaryFile(suffix='.png') as f:
             code = AztecCode(data, *args, **kwargs)
             code.save(f, module_size=5)
-            result = reader.decode(f.name, **(dict(encoding=None) if isinstance(data, bytes) else {}))
+            result = pyrxing.read_barcode(f.name) #, **(dict(encoding=None) if isinstance(data, bytes) else {}))
             assert result is not None
-            self.assertEqual(data, result.raw)
+            self.assertEqual(data, result.text)
 
-    @unittest.skipUnless(zxing, reason='Python module zxing cannot be imported; cannot test decoding.')
+    @unittest.skipUnless(pyrxing, reason='Python module pyrxing cannot be imported; cannot test decoding.')
     def test_barcode_readability(self):
-        r = zxing.BarCodeReader()
+        self._encode_and_decode('Wikipedia, the free encyclopedia', ec_percent=0)
+        self._encode_and_decode('Wow. Much error. Very correction. Amaze', ec_percent=95)
+        self._encode_and_decode('¿Cuánto cuesta?')
 
-        # FIXME: ZXing command-line runner tries to coerce everything to UTF-8, at least on Linux,
-        # so we can only reliably encode and decode characters that are in the intersection of utf-8
-        # and iso8859-1 (though with ZXing >=3.5, the iso8859-1 requirement is relaxed; see below).
-        #
-        # More discussion at: https://github.com/dlenski/python-zxing/issues/17#issuecomment-905728212
-        # Proposed solution: https://github.com/dlenski/python-zxing/issues/19
-        self._encode_and_decode(r, 'Wikipedia, the free encyclopedia', ec_percent=0)
-        self._encode_and_decode(r, 'Wow. Much error. Very correction. Amaze', ec_percent=95)
-        self._encode_and_decode(r, '¿Cuánto cuesta?')
-
-    @unittest.skipUnless(zxing, reason='Python module zxing cannot be imported; cannot test decoding.')
+    @unittest.skipUnless(pyrxing, reason='Python module pyrxing cannot be imported; cannot test decoding.')
     def test_barcode_readability_eci(self):
-        r = zxing.BarCodeReader()
-
-        # ZXing <=3.4.1 doesn't correctly decode ECI or FNC1 in Aztec (https://github.com/zxing/zxing/issues/1327),
-        # so we don't have a way to test readability of barcodes containing characters not in iso8859-1.
-        # ZXing 3.5.0 includes my contribution to decode Aztec codes with non-default charsets (https://github.com/zxing/zxing/pull/1328)
-        if r.zxing_version_info < (3, 5):
-            raise unittest.SkipTest("Running with ZXing v{}. In order to decode non-iso8859-1 charsets in Aztec Code, we need v3.5+".format(r.zxing_version))
-
-        self._encode_and_decode(r, 'The price is €4', encoding='utf-8')
-        self._encode_and_decode(r, 'אין לי מושג', encoding='iso8859-8')
+        self._encode_and_decode('The price is €4', encoding='utf-8')
+        self._encode_and_decode('אין לי מושג', encoding='iso8859-8')
 
     #####
     # Tests for previously-found bugs that have now been fixed
