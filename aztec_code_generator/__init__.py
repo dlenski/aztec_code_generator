@@ -456,6 +456,7 @@ def optimal_sequence_to_bits(optimal_sequence):
 
 def get_data_codewords(bits, codeword_size):
     """ Get codewords stream from data bits sequence
+
     Bit stuffing and padding are used to avoid all-zero and all-ones codewords
 
     :param bits: input data bits

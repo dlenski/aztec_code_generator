@@ -156,13 +156,13 @@ class Test(unittest.TestCase):
         self.assertEqual(find_optimal_sequence(b'. @\xff'), b(Shift.PUNCT, '. ', Shift.BINARY, 2, '@', '\xff'))
 
     def test_find_optimal_sequence_CRLF_bug(self):
-        """ Demonstrate a now-fixed bug in find_optimal_sequence (https://github.com/dlenski/aztec_code_generator/pull/4)
+        """ Demonstrate a known bug in find_optimal_sequence (https://github.com/dlenski/aztec_code_generator/pull/4)
 
         This is a much more minimal example of https://github.com/delimitry/aztec_code_generator/issues/7
 
         The string '\t<\r\n':
-          SHOULD be sequenced as:          Latch.MIXED '\t' Latch.PUNCT '<' '\r\n'
-          but is incorrectly sequenced as: Latch.MIXED '\t' Shift.PUNCT '<' '\r\n'
+          SHOULD be sequenced as:          Latch.MIXED '\t' Latch.PUNCT < '\r' '\n'
+          but is incorrectly sequenced as: Latch.MIXED '\t' Shift.PUNCT < '\r\n'
 
         ... which is impossible since no encoding of the 2 byte sequence b'\r\n' exists in MIXED mode. """
 
@@ -241,6 +241,46 @@ class Test(unittest.TestCase):
         self._encode_and_decode(r, 'The price is €4', encoding='utf-8')
         self._encode_and_decode(r, 'אין לי מושג', encoding='iso8859-8')
 
+    #####
+    # Tests for previously-found bugs that have now been fixed
+    #####
+
+    def test_find_optimal_sequence_CRLF_bug(self):
+        """ Demonstrate a now-fixed bug in find_optimal_sequence (https://github.com/dlenski/aztec_code_generator/pull/4)
+
+        This is a much more minimal example of https://github.com/delimitry/aztec_code_generator/issues/7
+
+        The string '\t<\r\n':
+          SHOULD be sequenced as:          Latch.MIXED '\t' Latch.PUNCT '<' '\r\n'
+          but is incorrectly sequenced as: Latch.MIXED '\t' Shift.PUNCT '<' '\r\n'
+
+        ... which is impossible since no encoding of the 2 byte sequence b'\r\n' exists in MIXED mode. """
+
+        self.assertEqual(find_optimal_sequence(b'\t<\r\n'), b(
+            Latch.MIXED, '\t', Latch.PUNCT, '<', '\r\n'
+        ))
+        self.assertEqual(find_optimal_sequence(b'\t<\r\n\x01\x01'), b(
+            Latch.MIXED, '\t', Shift.PUNCT, '<', '\r', '\n', '\x01', '\x01'
+        ))
+        self.assertEqual(find_optimal_sequence(b'\t<\r\nAA'), b(
+            Latch.MIXED, '\t', Latch.PUNCT, '<', '\r\n', Latch.UPPER, 'A', 'A'
+        ))
+
+    def test_encoding_failure_long_sequence_FF(self):
+        """ Demonstrate a now-fixed bug in find_suitable_matrix_size
+
+        Per https://github.com/dlenski/aztec_code_generator/issues/7#issuecomment-4193498761,
+        "when encoding 212 bytes 0xFF with `ec_percent=10` ... encoding is impossible"
+        """
+        AztecCode(b'\xff'*212, ec_percent=10)
+
+    def test_encoding_failure_long_sequence_00(self):
+        """ Demonstrate a now-fixed bug in find_suitable_matrix_size
+
+        Per https://github.com/dlenski/aztec_code_generator/issues/7#issuecomment-4193498761,
+        this also happens when the input "contains long sequences of 0x00"
+        """
+        AztecCode(b'\0'*212, ec_percent=10)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
