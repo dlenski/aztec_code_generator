@@ -6,7 +6,8 @@
 
     Aztec code generator.
 
-    :copyright: (c) 2016-2018 by Dmitry Alimov.
+    :copyright: (c) 2016-2018 by Dmitry Alimov
+                (c) 2019- by Daniel Lenski
     :license: The MIT License (MIT), see LICENSE for more details.
 """
 

@@ -107,7 +107,7 @@ output as plain ASCII text, using `#` and ` ` characters:
 
 Originally written by [Dmitry Alimov (delimtry)](https://github.com/delimitry).
 
-Updates, bug fixes, Python 3-ification, and careful `bytes`-vs.-`str` handling
+Updates, bug fixes, Python 3-ification, packaging, and careful `bytes`-vs.-`str` handling
 by [Daniel Lenski (dlenski)](https://github.com/dlenski).
 
 ## License:
