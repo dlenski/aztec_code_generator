@@ -18,6 +18,9 @@ import array
 import codecs
 from collections import namedtuple
 from enum import Enum
+from itertools import groupby
+from pathlib import Path
+from io import IOBase
 
 try:
     from PIL import Image, ImageDraw
@@ -552,12 +555,36 @@ class AztecCode(object):
     def save(self, filename, module_size=2, border=0, format=None):
         """ Save matrix to image file
 
+        If the format is 'SVG', or if unspecified and the filename extension
+        is '.svg', then a handcrafted SVG file will be generated instead of
+        a raster image.
+
         :param filename: output image filename (or file object, with format).
         :param module_size: barcode module size in pixels.
         :param border: barcode border size in modules.
         :param format: Pillow image format, such as 'PNG'
         """
+        if (format is not None and format.upper() == 'SVG') or (isinstance(filename, str) and Path(filename).suffix.upper() == '.SVG'):
+            return self.save_svg(filename, module_size, border)
         self.image(module_size, border).save(filename, format=format)
+
+    def save_svg(self, filename, module_size=2, border=0, foreground='black', background='white'):
+        """ Save matrix to SVG file using horizontal run-length-encoding """
+        f = filename if isinstance(filename, IOBase) else open(filename, 'wb')
+        size = (self.size+2*border)*module_size
+        f.write(
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">'
+            f'<rect x="0" y="0" width="{size}" height="{size}" fill="{background}"/>'
+            f'<path stroke="{foreground}" stroke-width="{module_size}" transform="translate(0,0.5)" d="'.encode())
+        for yy, line in enumerate(self.matrix):
+            xx = 0
+            for color, group in groupby(line):
+                run = len(list(group))
+                if color:
+                    f.write(b'M%d %dh%d' % ((xx + border)*module_size, (yy + border)*module_size, run*module_size))
+                xx += run
+        f.write(b'"/></svg>')
+
 
     def image(self, module_size=2, border=0):
         """ Create PIL image

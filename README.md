@@ -65,6 +65,14 @@ The `AztecCode()` constructor takes additional, optional arguments:
 `aztec_code.save('aztec_code.png', module_size=4, border=1)` will save an image file `aztec_code.png` of the symbol, with 4×4 blocks of white/black pixels in
 the output, and with a 1-block border.
 
+Other image formats supported by
+[Pillow](https://pillow.readthedocs.io/en/stable/) are supported as well, as
+is SVG via a customized SVG generator. Although SVG files are losslessly
+scalable, they are generally an *inefficient* format for representing 2D
+barcodes, producing files ~3-5&times; larger than equivalent PNG images.
+
+#### Example
+
 ![Aztec Code](https://1.bp.blogspot.com/-OZIo4dGwAM4/V7BaYoBaH2I/AAAAAAAAAwc/WBdTV6osTb4TxNf2f6v7bCfXM4EuO4OdwCLcB/s1600/aztec_code.png "Aztec Code with data")
 
 ### Creating an image object
