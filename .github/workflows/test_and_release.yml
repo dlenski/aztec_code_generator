@@ -48,6 +48,6 @@ jobs:
       uses: astral-sh/setup-uv@v7
     - uses: actions/download-artifact@v8
       with:
-        name: dist
+        name: dist-3.14   # FIXME: how to just use latest?
     - name: Publish to PyPI
       run: uv publish
