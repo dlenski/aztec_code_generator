@@ -27,4 +27,5 @@ dev = [
     "pyrxing>=0.2.0; python_version >= '3.8'",
     "flake8>=5.0.4",
     "pytest>=7.4.4",
+    "cairosvg>=2.7.1",
 ]

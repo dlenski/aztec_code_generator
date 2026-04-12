@@ -13,6 +13,12 @@ import codecs
 from tempfile import NamedTemporaryFile
 
 try:
+    import cairosvg
+    from io import BytesIO
+except ImportError:
+    cairosvg = None
+
+try:
     import pyrxing
 except ImportError:
     pyrxing = None
@@ -210,15 +216,34 @@ class Test(unittest.TestCase):
         with NamedTemporaryFile(suffix='.png') as f:
             code = AztecCode(data, *args, **kwargs)
             code.save(f, module_size=5)
+            f.flush()
+
             result = pyrxing.read_barcode(f.name) #, **(dict(encoding=None) if isinstance(data, bytes) else {}))
             assert result is not None
             self.assertEqual(data, result.text)
+
+    def _encode_and_decode_svg(self, data, *args, **kwargs):
+        with NamedTemporaryFile(suffix='.png') as f:
+            svgf = BytesIO()
+            code = AztecCode(data, *args, **kwargs)
+            code.save(svgf, module_size=5, format='SVG')
+            f.write(cairosvg.svg2png(bytestring=svgf.getvalue()))
+            f.flush()
+
+            result = pyrxing.read_barcode(f.name)
+            assert result is not None
+            self.assertEqual(data, result.text.encode('iso8859-1') if isinstance(data, bytes) else result.text)
 
     @unittest.skipUnless(pyrxing, reason='Python module pyrxing cannot be imported; cannot test decoding.')
     def test_barcode_readability(self):
         self._encode_and_decode('Wikipedia, the free encyclopedia', ec_percent=0)
         self._encode_and_decode('Wow. Much error. Very correction. Amaze', ec_percent=95)
         self._encode_and_decode('¿Cuánto cuesta?')
+
+    @unittest.skipUnless(pyrxing, reason='Python module pyrxing cannot be imported; cannot test decoding.')
+    @unittest.skipUnless(cairosvg, reason='Python module cairosvg cannot be imported; cannot test SVG decoding.')
+    def test_barcode_readability_svg(self):
+        self._encode_and_decode_svg('An Aztec barcode symbol in SVG format', ec_percent=5)
 
     @unittest.skipUnless(pyrxing, reason='Python module pyrxing cannot be imported; cannot test decoding.')
     def test_barcode_readability_eci(self):
