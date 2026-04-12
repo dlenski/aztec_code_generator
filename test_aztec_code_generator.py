@@ -4,6 +4,7 @@
 import unittest
 from aztec_code_generator import (
     reed_solomon, find_optimal_sequence, optimal_sequence_to_bits, get_data_codewords, encoding_to_eci,
+    configs,
     Mode, Latch, Shift, Misc,
     AztecCode,
 )
@@ -23,6 +24,41 @@ class Test(unittest.TestCase):
     """
     Test aztec_code_generator module
     """
+
+    def test_config_size_correctness(self):
+        """ Verify the correctness of the layers and codewords in the symbol size configs """
+        for (size, compact), config in configs.items():
+            # Start with total matrix size
+            bits_avail = size * size
+
+            # Subtract bits occupied by the core (bullseye + orientation marks)
+            core_size = 11 if compact else 15
+            bits_avail -= core_size * core_size
+
+            if not compact:
+                # Number of horizontal and vertical lines in reference grid
+                n_ref_lines = 1 + 2*(size // 32)
+
+                # Subtract bits occupied by the horizontal lines,
+                # without double-counting the core bits
+                bits_avail -= n_ref_lines*size - core_size
+
+                # Subtract bits occupied by the vertical lines,
+                # without double-counting either the core bits or
+                # those already counted in the horizontal lines
+                bits_avail -= n_ref_lines*size - core_size - (n_ref_lines * n_ref_lines - 1)
+
+            # Verify correctness of layers and bits available
+            expected_bits_avail = ((88 if compact else 112) + 16 * config.layers) * config.layers
+            self.assertEqual(expected_bits_avail, bits_avail,
+                             f"{expected_bits_avail} bits should fit in {config.layers} layers of {size}x{size} "
+                             f"{'compact' if compact else 'full'} symbol, but we calculated {bits_avail}")
+
+            # Verify correctness of codewords in config
+            cw_avail = bits_avail // config.cw_bits
+            self.assertEqual(cw_avail, config.codewords,
+                             f"{cw_avail} codewords should fit in {size}x{size} "
+                             f"{'compact' if compact else 'full'} symbol, but config has {config.codewords}")
 
     def test_reed_solomon(self):
         """ Test reed_solomon function """
@@ -92,7 +128,7 @@ class Test(unittest.TestCase):
     def test_find_optimal_sequence_non_ASCII_strings(self):
         """ Test find_optimal_sequence function for non-ASCII strings"""
 
-        # Implicit iso8559-1 without ECI:
+        # Implicit iso8859-1 without ECI:
         self.assertEqual(find_optimal_sequence('Français'), b(
             'F', Latch.LOWER, 'r', 'a', 'n', Shift.BINARY, 1, 0xe7, 'a', 'i', 's'))
 
@@ -134,17 +170,17 @@ class Test(unittest.TestCase):
             Latch.MIXED, '\t', Latch.PUNCT, '<', '\r\n'
         ))
 
-    @unittest.expectedFailure
     def test_encoding_failure_long_sequence_FF(self):
-        """
+        """ Demonstrate a now-fixed bug in find_suitable_matrix_size
+
         Per https://github.com/dlenski/aztec_code_generator/issues/7#issuecomment-4193498761,
         "when encoding 212 bytes 0xFF with `ec_percent=10` ... encoding is impossible"
         """
         AztecCode(b'\xff'*212, ec_percent=10)
 
-    @unittest.expectedFailure
     def test_encoding_failure_long_sequence_00(self):
-        """
+        """ Demonstrate a now-fixed bug in find_suitable_matrix_size
+
         Per https://github.com/dlenski/aztec_code_generator/issues/7#issuecomment-4193498761,
         this also happens when the input "contains long sequences of 0x00"
         """
@@ -184,7 +220,7 @@ class Test(unittest.TestCase):
 
         # FIXME: ZXing command-line runner tries to coerce everything to UTF-8, at least on Linux,
         # so we can only reliably encode and decode characters that are in the intersection of utf-8
-        # and iso8559-1 (though with ZXing >=3.5, the iso8559-1 requirement is relaxed; see below).
+        # and iso8859-1 (though with ZXing >=3.5, the iso8859-1 requirement is relaxed; see below).
         #
         # More discussion at: https://github.com/dlenski/python-zxing/issues/17#issuecomment-905728212
         # Proposed solution: https://github.com/dlenski/python-zxing/issues/19
@@ -197,7 +233,7 @@ class Test(unittest.TestCase):
         r = zxing.BarCodeReader()
 
         # ZXing <=3.4.1 doesn't correctly decode ECI or FNC1 in Aztec (https://github.com/zxing/zxing/issues/1327),
-        # so we don't have a way to test readability of barcodes containing characters not in iso8559-1.
+        # so we don't have a way to test readability of barcodes containing characters not in iso8859-1.
         # ZXing 3.5.0 includes my contribution to decode Aztec codes with non-default charsets (https://github.com/zxing/zxing/pull/1328)
         if r.zxing_version_info < (3, 5):
             raise unittest.SkipTest("Running with ZXing v{}. In order to decode non-iso8859-1 charsets in Aztec Code, we need v3.5+".format(r.zxing_version))
@@ -205,6 +241,46 @@ class Test(unittest.TestCase):
         self._encode_and_decode(r, 'The price is €4', encoding='utf-8')
         self._encode_and_decode(r, 'אין לי מושג', encoding='iso8859-8')
 
+    #####
+    # Tests for previously-found bugs that have now been fixed
+    #####
+
+    def test_find_optimal_sequence_CRLF_bug(self):
+        """ Demonstrate a now-fixed bug in find_optimal_sequence (https://github.com/dlenski/aztec_code_generator/pull/4)
+
+        This is a much more minimal example of https://github.com/delimitry/aztec_code_generator/issues/7
+
+        The string '\t<\r\n':
+          SHOULD be sequenced as:          Latch.MIXED '\t' Latch.PUNCT '<' '\r\n'
+          but is incorrectly sequenced as: Latch.MIXED '\t' Shift.PUNCT '<' '\r\n'
+
+        ... which is impossible since no encoding of the 2 byte sequence b'\r\n' exists in MIXED mode. """
+
+        self.assertEqual(find_optimal_sequence(b'\t<\r\n'), b(
+            Latch.MIXED, '\t', Latch.PUNCT, '<', '\r\n'
+        ))
+        self.assertEqual(find_optimal_sequence(b'\t<\r\n\x01\x01'), b(
+            Latch.MIXED, '\t', Shift.PUNCT, '<', '\r', '\n', '\x01', '\x01'
+        ))
+        self.assertEqual(find_optimal_sequence(b'\t<\r\nAA'), b(
+            Latch.MIXED, '\t', Latch.PUNCT, '<', '\r\n', Latch.UPPER, 'A', 'A'
+        ))
+
+    def test_encoding_failure_long_sequence_FF(self):
+        """ Demonstrate a now-fixed bug in find_suitable_matrix_size
+
+        Per https://github.com/dlenski/aztec_code_generator/issues/7#issuecomment-4193498761,
+        "when encoding 212 bytes 0xFF with `ec_percent=10` ... encoding is impossible"
+        """
+        AztecCode(b'\xff'*212, ec_percent=10)
+
+    def test_encoding_failure_long_sequence_00(self):
+        """ Demonstrate a now-fixed bug in find_suitable_matrix_size
+
+        Per https://github.com/dlenski/aztec_code_generator/issues/7#issuecomment-4193498761,
+        this also happens when the input "contains long sequences of 0x00"
+        """
+        AztecCode(b'\0'*212, ec_percent=10)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
