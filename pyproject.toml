@@ -21,6 +21,11 @@ module-root = ""
 [project.urls]
 Homepage = "https://github.com/dlenski/aztec_code_generator"
 
+[project.optional-dependencies]
+Image = [
+  "pillow>=8.0",
+]
+
 [dependency-groups]
 dev = [
     "pillow>=8.0",
