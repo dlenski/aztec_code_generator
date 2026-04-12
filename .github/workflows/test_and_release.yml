@@ -41,6 +41,10 @@ jobs:
 
     runs-on: ubuntu-latest
     needs: build-and-test
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
@@ -49,5 +53,6 @@ jobs:
     - uses: actions/download-artifact@v8
       with:
         name: dist-3.14   # FIXME: how to just use latest?
+        path: dist/
     - name: Publish to PyPI
       run: uv publish

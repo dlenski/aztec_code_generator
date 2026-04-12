@@ -32,6 +32,14 @@ This is a pure-Python library to generate [Aztec Code](https://en.wikipedia.org/
 - `v0.11`
   - fix docstrings
   - change default `module_size` in image output to 2 pixels; ZXing can't read with `module_size=1`
+- `v0.12`
+  - fix CRLF optimal sequence bug ([#4](https://github.com/dlenski/aztec_code_generator/issues/4))
+  - fix bugs with calculation of suitable matrix size and error correction
+    level ([#7](https://github.com/dlenski/aztec_code_generator/issues/7))
+  - add support for SVG output ([#6](https://github.com/dlenski/aztec_code_generator/pull/6))
+  - add additional test cases
+  - switch to [pyrxing](https://github.com/tanagumo/pyrxing) for barcode readability testing
+  - use `uv` to build and deploy
 
 
 ## Installation
